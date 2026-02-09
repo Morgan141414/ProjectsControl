@@ -1,0 +1,213 @@
+* {
+    font-family: "Manrope", "Montserrat", "Segoe UI";
+    color: #E8E8EA;
+}
+
+QMainWindow {
+    background-color: #0F1115;
+}
+
+#Sidebar {
+    background-color: #0F1115;
+}
+
+#Sidebar QPushButton {
+    background-color: transparent;
+    color: #E8E8EA;
+    border: none;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+}
+
+#Sidebar QPushButton:hover {
+    background-color: #1A1F26;
+}
+
+#Sidebar QPushButton:checked {
+    background-color: #202634;
+}
+
+#TitleLabel {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+#Card {
+    background-color: #141820;
+    border: 1px solid #232A36;
+    border-radius: 14px;
+}
+
+#AuthHero {
+    background-color: #0D1117;
+}
+
+#AuthOverlay {
+    background-color: rgba(13, 17, 23, 0.72);
+}
+
+#AuthVideo {
+    background-color: #0D1117;
+}
+
+#HeroTitle {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: #F0F6FC;
+}
+
+#HeroSubtitle {
+    font-size: 16px;
+    color: #B9BCC4;
+}
+
+#HeroNote {
+    font-size: 14px;
+    color: #8E949D;
+}
+
+#AuthCard {
+    background-color: #0F1117;
+    border: 1px solid #21262D;
+    border-radius: 18px;
+}
+
+#AuthTitle {
+    font-size: 24px;
+    font-weight: 800;
+}
+
+#AuthSubtitle {
+    color: #9BA4B5;
+}
+
+#DashboardMain {
+    background-color: #141820;
+    border: 1px solid #232A36;
+    border-radius: 18px;
+}
+
+#DashboardCard {
+    background-color: #171C24;
+    border: 1px solid #232A36;
+    border-radius: 16px;
+}
+
+#DashboardSideCard {
+    background-color: #141820;
+    border: 1px solid #232A36;
+    border-radius: 18px;
+}
+
+#DashboardTitle {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+#DashboardSubtitle {
+    color: #B9BCC4;
+}
+
+#DashboardSectionTitle {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+#DashboardRole {
+    padding: 6px 10px;
+}
+
+#DashboardInput {
+    background-color: #0F1115;
+    border: 1px solid #232A36;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+#DashboardPill {
+    background-color: #141820;
+    border: 1px solid #232A36;
+    border-radius: 12px;
+    padding: 4px 10px;
+}
+
+#DashboardStat {
+    background-color: #141820;
+    border: 1px solid #232A36;
+    border-radius: 14px;
+    padding: 8px 12px;
+    font-weight: 600;
+}
+
+#AuthToggle {
+    background-color: #171C24;
+    color: #E8E8EA;
+    border: 1px solid #232A36;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-weight: 600;
+}
+
+#AuthToggle:checked {
+    background-color: #E8E8EA;
+    color: #0F1115;
+}
+
+QLineEdit {
+    background-color: #0F1115;
+    border: 1px solid #232A36;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #E8E8EA;
+}
+
+QPushButton {
+    background-color: #E8E8EA;
+    color: #0F1115;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background-color: #FFFFFF;
+}
+
+QPushButton:disabled {
+    background-color: #6B6F77;
+}
+
+QPushButton#SecondaryButton {
+    background-color: #171C24;
+    color: #E8E8EA;
+    border: 1px solid #232A36;
+}
+
+QPushButton#SecondaryButton:hover {
+    background-color: #202634;
+}
+
+QPushButton#LinkButton {
+    background-color: transparent;
+    color: #E8E8EA;
+    border: none;
+    padding: 6px 0px;
+    text-align: left;
+}
+
+QListWidget {
+    border: 1px solid #232A36;
+    border-radius: 12px;
+    background-color: #141820;
+}
+
+QLabel#Muted {
+    color: #9AA1AB;
+}
