@@ -1,6 +1,7 @@
 from app.models.activity import ActivityEvent, AuditLog, ScreenRecording, ScreenSession
 from app.models.ai_score import AIScoreSnapshot
 from app.models.daily_report import DailyReport
+from app.models.daily_report_attachment import DailyReportAttachment
 from app.models.consent import ConsentRecord
 from app.models.enums import (
     ActivityType,
@@ -33,6 +34,7 @@ __all__ = [
     "ConsentRecord",
     "AIScoreSnapshot",
     "DailyReport",
+    "DailyReportAttachment",
     "ActivityType",
     "AuditAction",
     "JoinStatus",

@@ -42,6 +42,7 @@ def create_project(
 
     project = Project(org_id=org_id, name=payload.name, description=payload.description)
     db.add(project)
+    db.flush()
     log_audit(
         db,
         org_id=org_id,

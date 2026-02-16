@@ -11,7 +11,7 @@ from app.ui.main_window import MainWindow
 def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("ProjectsControl")
-    app.setFont(QFont("Manrope", 10))
+    app.setFont(QFont("Inter", 10))
 
     app.setStyleSheet(load_stylesheet(session_store.theme, session_store.background_path))
 

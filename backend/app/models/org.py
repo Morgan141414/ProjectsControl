@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.models.enums import JoinStatus, OrgRole
 from app.utils.codes import new_join_code
@@ -17,7 +18,7 @@ class Organization(Base):
     join_code: Mapped[str] = mapped_column(
         String(16), unique=True, index=True, default=new_join_code
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     memberships = relationship(
         "OrgMembership", back_populates="organization", cascade="all, delete-orphan"
@@ -40,7 +41,8 @@ class OrgMembership(Base):
     )
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
     role: Mapped[OrgRole] = mapped_column(SAEnum(OrgRole), default=OrgRole.member)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    position: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     organization = relationship("Organization", back_populates="memberships")
     user = relationship("User", back_populates="org_memberships")
@@ -53,7 +55,7 @@ class OrgJoinRequest(Base):
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"))
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     status: Mapped[JoinStatus] = mapped_column(SAEnum(JoinStatus), default=JoinStatus.pending)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     organization = relationship("Organization", back_populates="join_requests")
     user = relationship("User")

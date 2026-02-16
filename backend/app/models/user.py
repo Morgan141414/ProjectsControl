@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.utils.ids import new_id
 
@@ -19,10 +20,12 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(Text)
     specialty: Mapped[str | None] = mapped_column(String(120))
     avatar_url: Mapped[str | None] = mapped_column(String(500))
+    gender: Mapped[str | None] = mapped_column(String(20))
+    website: Mapped[str | None] = mapped_column(String(500))
     socials_json: Mapped[str | None] = mapped_column(Text)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     org_memberships = relationship(
         "OrgMembership", back_populates="user", cascade="all, delete-orphan"

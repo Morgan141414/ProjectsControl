@@ -1,8 +1,10 @@
 import secrets
+import threading
+import time
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token as google_id_token
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,45 @@ from app.schemas.auth import GoogleLoginRequest, RegisterRequest, Token
 from app.schemas.user import UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+_LOGIN_ATTEMPTS: dict[str, list[float]] = {}
+_LOGIN_LOCK = threading.Lock()
+
+
+def _rate_limit_key(request: Request, username: str) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return f"{ip}:{username.lower().strip()}"
+
+
+def _check_login_rate_limit(request: Request, username: str) -> None:
+    now = time.time()
+    window = settings.AUTH_RATE_LIMIT_WINDOW_SECONDS
+    limit = settings.AUTH_RATE_LIMIT_MAX_ATTEMPTS
+    key = _rate_limit_key(request, username)
+
+    with _LOGIN_LOCK:
+        attempts = [ts for ts in _LOGIN_ATTEMPTS.get(key, []) if now - ts <= window]
+        if len(attempts) >= limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Try again later.",
+            )
+        _LOGIN_ATTEMPTS[key] = attempts
+
+
+def _record_login_failure(request: Request, username: str) -> None:
+    now = time.time()
+    window = settings.AUTH_RATE_LIMIT_WINDOW_SECONDS
+    key = _rate_limit_key(request, username)
+    with _LOGIN_LOCK:
+        attempts = [ts for ts in _LOGIN_ATTEMPTS.get(key, []) if now - ts <= window]
+        attempts.append(now)
+        _LOGIN_ATTEMPTS[key] = attempts
+
+
+def _clear_login_failures(request: Request, username: str) -> None:
+    key = _rate_limit_key(request, username)
+    with _LOGIN_LOCK:
+        _LOGIN_ATTEMPTS.pop(key, None)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -35,13 +76,17 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> User:
 
 @router.post("/login", response_model=Token)
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> Token:
+    _check_login_rate_limit(request, form_data.username)
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
+        _record_login_failure(request, form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
+    _clear_login_failures(request, form_data.username)
     token = create_access_token(user.id)
     return Token(access_token=token)
 
@@ -57,7 +102,7 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)) -> 
     try:
         info = google_id_token.verify_oauth2_token(
             payload.id_token,
-            Request(),
+            GoogleAuthRequest(),
             settings.GOOGLE_OAUTH_CLIENT_ID,
         )
     except Exception as exc:  # noqa: BLE001

@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.core.time import utc_now_naive
 from app.db.session import SessionLocal
 from app.models.activity import ActivityEvent, ScreenSession
 from app.models.enums import ActivityType, OrgRole, SessionStatus, TaskStatus
@@ -91,7 +92,7 @@ def seed(db: Session) -> dict[str, str]:
         org_id=org.id,
         user_id=member.id,
         status=SessionStatus.active,
-        started_at=datetime.utcnow() - timedelta(hours=2),
+        started_at=utc_now_naive() - timedelta(hours=2),
         device_name="Workstation",
         os_name="Windows",
     )

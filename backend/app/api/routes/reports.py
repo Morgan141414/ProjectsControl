@@ -1,6 +1,7 @@
 from datetime import date, datetime
+import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -69,6 +70,24 @@ def _apply_task_date_filter(query, start_date: date | None, end_date: date | Non
     return query
 
 
+def _validate_range(start_date: date | None, end_date: date | None) -> None:
+    if start_date and end_date:
+        if end_date < start_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid date range: end_date must be >= start_date",
+            )
+        span_days = (end_date - start_date).days + 1
+        if span_days > settings.REPORTS_MAX_RANGE_DAYS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Date range too large ({span_days} days). "
+                    f"Maximum allowed is {settings.REPORTS_MAX_RANGE_DAYS} days."
+                ),
+            )
+
+
 def compute_org_kpi_report(
     db: Session,
     org_id: str,
@@ -77,6 +96,18 @@ def compute_org_kpi_report(
     team_id: str | None = None,
     project_id: str | None = None,
 ) -> KPIOrgReport:
+    _validate_range(start_date, end_date)
+    started = time.perf_counter()
+
+    def _check_timeout() -> None:
+        if time.perf_counter() - started > settings.HEAVY_ENDPOINT_TIMEOUT_SECONDS:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=(
+                    "Report computation timeout. Please narrow date range or apply team/project filters."
+                ),
+            )
+
     sessions_query = (
         db.query(ScreenSession)
         .filter(ScreenSession.org_id == org_id)
@@ -107,6 +138,7 @@ def compute_org_kpi_report(
     user_rows: dict[str, KPIUserRow] = {}
 
     for session in sessions:
+        _check_timeout()
         events = _load_events(db, session.id)
         session_observed, session_idle = _compute_seconds(events)
         session_events_count = len(events)
@@ -148,6 +180,7 @@ def compute_org_kpi_report(
     tasks = tasks_query.all()
 
     for task in tasks:
+        _check_timeout()
         row = user_rows.get(task.assignee_id)
         if not row:
             user = db.get(User, task.assignee_id)
@@ -213,6 +246,7 @@ def compute_org_kpi_report(
         team_map.setdefault(membership_row.team_id, []).append(membership_row.user_id)
 
     for team_id, team_row in team_rows.items():
+        _check_timeout()
         users_in_team = set(team_map.get(team_id, []))
         team_row.users_count = len(users_in_team)
         for user_id in users_in_team:

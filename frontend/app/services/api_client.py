@@ -1,3 +1,5 @@
+import time
+
 import httpx
 
 from app.state.session import session_store
@@ -19,19 +21,39 @@ class ApiClient:
         return {}
 
     def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
-        try:
-            response = httpx.request(method, f"{self.base_url}{path}", timeout=10, **kwargs)
-            response.raise_for_status()
-            return response
-        except httpx.HTTPStatusError as exc:
-            detail = "Unexpected error"
+        retries = 2
+        timeout = 12
+
+        for attempt in range(retries + 1):
             try:
-                detail = exc.response.json().get("detail", detail)
-            except Exception:  # noqa: BLE001
-                detail = exc.response.text or detail
-            raise ApiError(detail, exc.response.status_code) from exc
-        except httpx.RequestError as exc:
-            raise ApiError("Network error. Check backend status.") from exc
+                response = httpx.request(method, f"{self.base_url}{path}", timeout=timeout, **kwargs)
+                response.raise_for_status()
+                return response
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                # Retry transient server-side failures.
+                if status >= 500 and attempt < retries:
+                    time.sleep(0.25 * (attempt + 1))
+                    continue
+
+                detail = "Unexpected error"
+                try:
+                    payload = exc.response.json()
+                    if isinstance(payload, dict):
+                        detail = str(payload.get("detail", detail))
+                    else:
+                        detail = str(payload)
+                except Exception:  # noqa: BLE001
+                    detail = (exc.response.text or detail).strip()
+                raise ApiError(detail, status) from exc
+            except httpx.RequestError as exc:
+                if attempt < retries:
+                    time.sleep(0.25 * (attempt + 1))
+                    continue
+                raise ApiError("Network error. Check backend status.") from exc
+
+        # Should never happen due to returns/raises in loop.
+        raise ApiError("Request failed")
 
     def register(self, email: str, password: str, full_name: str) -> dict:
         response = self._request(
@@ -62,6 +84,15 @@ class ApiClient:
             "POST",
             "/orgs/join-request",
             json={"org_code": org_code},
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def search_orgs(self, query: str) -> list[dict]:
+        response = self._request(
+            "GET",
+            "/orgs/search",
+            params={"q": query},
             headers=self._headers(),
         )
         return response.json()
@@ -200,6 +231,33 @@ class ApiClient:
             headers=self._headers(),
         )
         return response.json()
+
+    def send_session_preview(self, org_id: str, session_id: str, data: bytes, content_type: str = "image/jpeg") -> dict:
+        """Send lightweight preview frame for a live screen session."""
+        files = {"file": ("preview.jpg", data, content_type)}
+        response = self._request(
+            "POST",
+            f"/orgs/{org_id}/sessions/{session_id}/preview",
+            files=files,
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def get_session_preview(self, org_id: str, session_id: str) -> bytes | None:
+        """Fetch latest preview frame for a session. Returns None if preview not yet available (404)."""
+        try:
+            response = httpx.request(
+                "GET",
+                f"{self.base_url}/orgs/{org_id}/sessions/{session_id}/preview",
+                headers=self._headers(),
+                timeout=10,
+            )
+        except httpx.RequestError as exc:
+            raise ApiError("Сеть недоступна. Проверьте backend.") from exc
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return response.content
 
     def get_org_kpi(
         self,
@@ -344,11 +402,48 @@ class ApiClient:
         )
         return response.json()
 
-    def add_team_member(self, org_id: str, team_id: str, user_id: str) -> dict:
+    def add_team_member(self, org_id: str, team_id: str, user_id: str, role: str = "member") -> dict:
         response = self._request(
             "POST",
             f"/orgs/{org_id}/teams/{team_id}/members",
-            json={"user_id": user_id},
+            json={"user_id": user_id, "role": role},
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def delete_team(self, org_id: str, team_id: str) -> None:
+        self._request(
+            "DELETE",
+            f"/orgs/{org_id}/teams/{team_id}",
+            headers=self._headers(),
+        )
+
+    def list_org_members(self, org_id: str) -> list[dict]:
+        response = self._request(
+            "GET",
+            f"/orgs/{org_id}/members",
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def update_org_member(self, org_id: str, user_id: str, position: str | None = None, role: str | None = None) -> dict:
+        payload: dict = {}
+        if position is not None:
+            payload["position"] = position
+        if role is not None:
+            payload["role"] = role
+        response = self._request(
+            "PATCH",
+            f"/orgs/{org_id}/members/{user_id}",
+            json=payload,
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def get_my_membership(self, org_id: str) -> dict:
+        response = self._request(
+            "GET",
+            f"/orgs/{org_id}/members/me",
             headers=self._headers(),
         )
         return response.json()
@@ -630,6 +725,20 @@ class ApiClient:
         )
         return response.json()
 
+    def upload_daily_report_attachment(self, org_id: str, report_id: str, file_path: str) -> dict:
+        """Upload attachment (file/image/video) for a daily report."""
+        import os
+
+        filename = os.path.basename(file_path)
+        with open(file_path, "rb") as f:
+            response = self._request(
+                "POST",
+                f"/orgs/{org_id}/daily-reports/{report_id}/attachments",
+                files={"file": (filename, f)},
+                headers=self._headers(),
+            )
+        return response.json()
+
     def download_report_export(self, org_id: str, export_id: str) -> bytes:
         response = self._request(
             "GET",
@@ -697,5 +806,42 @@ class ApiClient:
         )
         return response.json()
 
+    # ── User search & avatar ──────────────────────────────────────
 
-api_client = ApiClient("http://127.0.0.1:8001")
+    def search_users(self, query: str) -> list[dict]:
+        """Search users by name/email/specialty."""
+        response = self._request(
+            "GET",
+            "/users/search",
+            params={"q": query},
+            headers=self._headers(),
+        )
+        return response.json()
+
+    def upload_avatar(self, file_path: str) -> dict:
+        """Upload avatar image file, returns updated user profile."""
+        import os
+        filename = os.path.basename(file_path)
+        with open(file_path, "rb") as f:
+            response = self._request(
+                "POST",
+                "/users/me/avatar",
+                files={"file": (filename, f, "image/png")},
+                headers=self._headers(),
+            )
+        return response.json()
+
+    def get_avatar_url(self, relative_url: str) -> str:
+        """Convert relative avatar URL to absolute."""
+        return f"{self.base_url}{relative_url}"
+
+    def live_stream_ws_url(self, org_id: str, session_id: str, token: str, role: str = "viewer") -> str:
+        """WebSocket URL for real-time screen stream (Zoom/Discord style). role: broadcast | viewer."""
+        import urllib.parse
+        base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
+        path = f"/orgs/{org_id}/sessions/{session_id}/live"
+        q = urllib.parse.urlencode({"token": token, "role": role})
+        return f"{base}{path}?{q}"
+
+
+api_client = ApiClient("http://127.0.0.1:8000")

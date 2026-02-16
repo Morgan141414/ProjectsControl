@@ -19,3 +19,15 @@ class DailyReportResponse(BaseModel):
     report_date: date
     content: str
     created_at: datetime
+
+
+class DailyReportAttachmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    org_id: str
+    report_id: str
+    filename: str
+    mime_type: str
+    size_bytes: int
+    created_at: datetime

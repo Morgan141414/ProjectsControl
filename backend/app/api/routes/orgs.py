@@ -6,7 +6,13 @@ from app.core.deps import get_current_user, get_db, get_org_membership, require_
 from app.models.enums import AuditAction, JoinStatus, OrgRole
 from app.models.org import OrgJoinRequest, OrgMembership, Organization
 from app.models.user import User
-from app.schemas.org import JoinRequestCreate, JoinRequestResponse, OrgCreate, OrgResponse
+from app.schemas.org import (
+    JoinRequestCreate,
+    JoinRequestResponse,
+    OrgCreate,
+    OrgLookupResponse,
+    OrgResponse,
+)
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 
@@ -34,6 +40,25 @@ def create_org(
     db.commit()
     db.refresh(org)
     return org
+
+
+@router.get("/search", response_model=list[OrgLookupResponse])
+def search_organizations(
+    q: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Organization]:
+    query = q.strip()
+    if len(query) < 2:
+        return []
+    _ = current_user
+    return (
+        db.query(Organization)
+        .filter(Organization.name.ilike(f"%{query}%"))
+        .order_by(Organization.created_at.desc())
+        .limit(12)
+        .all()
+    )
 
 
 @router.post("/join-request", response_model=JoinRequestResponse, status_code=status.HTTP_201_CREATED)
@@ -181,3 +206,108 @@ def reject_join_request(
     db.commit()
     db.refresh(join_request)
     return join_request
+
+
+# ── Org members management ────────────────────────────────────────
+
+from pydantic import BaseModel, ConfigDict
+
+
+class OrgMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: str
+    role: str
+    position: str | None = None
+    full_name: str | None = None
+    email: str | None = None
+    specialty: str | None = None
+    avatar_url: str | None = None
+
+
+class UpdateMemberPayload(BaseModel):
+    position: str | None = None
+    role: str | None = None
+
+
+@router.get("/{org_id}/members", response_model=list[OrgMemberResponse])
+def list_org_members(
+    org_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    get_org_membership(org_id, current_user, db)
+    memberships = (
+        db.query(OrgMembership)
+        .filter(OrgMembership.org_id == org_id)
+        .all()
+    )
+    result = []
+    for m in memberships:
+        user = db.get(User, m.user_id)
+        result.append(OrgMemberResponse(
+            user_id=m.user_id,
+            role=m.role.value if hasattr(m.role, "value") else str(m.role),
+            position=m.position,
+            full_name=user.full_name if user else None,
+            email=user.email if user else None,
+            specialty=user.specialty if user else None,
+            avatar_url=user.avatar_url if user else None,
+        ))
+    return result
+
+
+@router.patch("/{org_id}/members/{user_id}", response_model=OrgMemberResponse)
+def update_org_member(
+    org_id: str,
+    user_id: str,
+    payload: UpdateMemberPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    admin_membership = get_org_membership(org_id, current_user, db)
+    require_role(admin_membership, {OrgRole.admin, OrgRole.manager})
+
+    target = (
+        db.query(OrgMembership)
+        .filter(OrgMembership.org_id == org_id, OrgMembership.user_id == user_id)
+        .first()
+    )
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    if payload.position is not None:
+        target.position = payload.position
+    if payload.role is not None:
+        target.role = OrgRole(payload.role)
+
+    db.commit()
+    db.refresh(target)
+    user = db.get(User, user_id)
+    return OrgMemberResponse(
+        user_id=target.user_id,
+        role=target.role.value if hasattr(target.role, "value") else str(target.role),
+        position=target.position,
+        full_name=user.full_name if user else None,
+        email=user.email if user else None,
+        specialty=user.specialty if user else None,
+        avatar_url=user.avatar_url if user else None,
+    )
+
+
+@router.get("/{org_id}/members/me", response_model=OrgMemberResponse)
+def get_my_membership(
+    org_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    m = get_org_membership(org_id, current_user, db)
+    return OrgMemberResponse(
+        user_id=m.user_id,
+        role=m.role.value if hasattr(m.role, "value") else str(m.role),
+        position=m.position,
+        full_name=current_user.full_name,
+        email=current_user.email,
+        specialty=current_user.specialty,
+        avatar_url=current_user.avatar_url,
+    )

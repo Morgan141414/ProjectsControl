@@ -47,6 +47,7 @@ def create_rule(
         enabled=payload.enabled,
     )
     db.add(rule)
+    db.flush()
     log_audit(
         db,
         org_id=org_id,

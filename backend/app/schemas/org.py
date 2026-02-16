@@ -15,6 +15,14 @@ class OrgResponse(BaseModel):
     join_code: str
 
 
+class OrgLookupResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    join_code: str
+
+
 class JoinRequestCreate(BaseModel):
     org_code: str = Field(min_length=4, max_length=16)
 

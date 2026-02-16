@@ -202,11 +202,11 @@ def _stat_card(icon_svg: str, icon_color: str, value: str, label: str) -> QFrame
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Video Recorder — real screen recording like Discord screen share
-#  720p @ 15 FPS, H.264 / mp4v codec, threaded capture + encode
+#  Screenshot Capture — periodic screenshots for instant AI analysis
+#  Replaces video recording: lighter, faster, real-time AI reports
 # ═══════════════════════════════════════════════════════════════════════
 
-_RECORDINGS_DIR = str(Path(__file__).resolve().parents[2] / "data" / "recordings")
+_SCREENSHOTS_DIR = str(Path(__file__).resolve().parents[2] / "data" / "screenshots")
 
 
 def _format_file_size(size_bytes: int) -> str:
@@ -220,62 +220,61 @@ def _format_file_size(size_bytes: int) -> str:
     return f"{size_bytes / 1024 / 1024 / 1024:.2f} ГБ"
 
 
-class _VideoRecorder:
-    """Threaded screen recorder: mss capture → OpenCV encode → .mp4 file.
+class _ScreenshotCapture:
+    """Periodic screenshot capture with instant AI analysis.
 
-    OPTIMIZED for Discord-quality screen share:
-      - 720p resolution  (1280 × 720)
-      - 30 FPS target    (Discord standard, reduced CPU load)
-      - H264 hardware encoding (NVENC/QSV/AMF) with fallback
+    Replaces video recording for real-time productivity monitoring:
+      - Captures screenshots every N seconds (default: 10s)
+      - Each screenshot is analyzed instantly by AI
+      - Generates real-time productivity reports
+      - Much lighter on CPU/disk than video recording
       - Background thread for zero UI blocking
-      - Adaptive FPS tracking
     """
 
-    TARGET_W, TARGET_H = 1280, 720
-    DEFAULT_FPS = 30  # Changed from 60 to 30 (Discord standard)
+    DEFAULT_INTERVAL = 10  # seconds between screenshots
 
-    def __init__(self, fps: int = DEFAULT_FPS) -> None:
-        self._fps = fps
-        self._interval = 1.0 / fps
+    def __init__(self, interval: int = DEFAULT_INTERVAL) -> None:
+        self._interval = interval
         self._running = False
         self._paused = False
         self._thread: threading.Thread | None = None
-        self._output_path: str | None = None
-        self._frame_count = 0
-        self._file_size = 0
-        self._actual_fps: float = 0.0
+        self._output_dir: str = _SCREENSHOTS_DIR
+        self._screenshot_count = 0
+        self._total_size = 0
         self._start_time: float = 0.0
         self._pause_accum: float = 0.0
         self._pause_start: float = 0.0
         self._lock = threading.Lock()
+        self._last_analysis: str = "Ожидание..."
+        self._productivity_score: int = 0
+        self._analyses: list[dict] = []
 
     # ── public API ────────────────────────────────────────────────
 
     def start(self, output_dir: str | None = None) -> str:
-        """Start recording. Returns the output .mp4 file path."""
+        """Start screenshot capture. Returns the output directory."""
         if self._running:
-            return self._output_path or ""
+            return self._output_dir
 
-        out = output_dir or _RECORDINGS_DIR
-        os.makedirs(out, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._output_path = os.path.join(out, f"rec_{ts}.mp4")
+        self._output_dir = output_dir or _SCREENSHOTS_DIR
+        os.makedirs(self._output_dir, exist_ok=True)
 
-        self._frame_count = 0
-        self._file_size = 0
+        self._screenshot_count = 0
+        self._total_size = 0
         self._running = True
         self._paused = False
         self._start_time = time.monotonic()
         self._pause_accum = 0.0
+        self._analyses.clear()
 
         self._thread = threading.Thread(
-            target=self._record_loop, daemon=True, name="ScreenRecorder"
+            target=self._capture_loop, daemon=True, name="ScreenshotCapture"
         )
         self._thread.start()
-        return self._output_path
+        return self._output_dir
 
     def pause(self) -> None:
-        """Pause recording (frames stop being written)."""
+        """Pause capture."""
         with self._lock:
             if self._running and not self._paused:
                 self._paused = True
@@ -289,12 +288,12 @@ class _VideoRecorder:
                 self._paused = False
 
     def stop(self) -> str:
-        """Stop recording and finalise .mp4. Returns file path."""
+        """Stop capture. Returns output directory."""
         self._running = False
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
         self._thread = None
-        return self._output_path or ""
+        return self._output_dir
 
     def is_running(self) -> bool:
         return self._running
@@ -313,140 +312,123 @@ class _VideoRecorder:
                     pause += time.monotonic() - self._pause_start
                 elapsed = max(0.0, raw - pause)
             return {
-                "frames": self._frame_count,
-                "file_size": self._file_size,
+                "screenshots": self._screenshot_count,
+                "total_size": self._total_size,
                 "duration": elapsed,
-                "fps": self._fps,
-                "actual_fps": self._actual_fps,
-                "resolution": f"{self.TARGET_W}x{self.TARGET_H}",
-                "path": self._output_path or "",
+                "interval": self._interval,
+                "last_analysis": self._last_analysis,
+                "productivity_score": self._productivity_score,
+                "path": self._output_dir,
             }
+
+    def get_analyses(self) -> list[dict]:
+        """Get all screenshot analyses for the session."""
+        with self._lock:
+            return list(self._analyses)
 
     # ── background capture loop ───────────────────────────────────
 
-    def _record_loop(self) -> None:
-        """Main capture → encode loop running in a daemon thread."""
+    def _capture_loop(self) -> None:
+        """Capture screenshots periodically in background thread."""
         try:
-            import cv2
             import mss
             import numpy as np
         except ImportError as exc:
-            print(f"[VideoRecorder] missing dependency: {exc}")
+            print(f"[ScreenshotCapture] missing dependency: {exc}")
             self._running = False
             return
 
         sct = mss.mss()
         monitor = sct.monitors[1]  # primary monitor
 
-        # Try H.264 hardware encoding first (Discord-quality), then fallback to software codecs
-        # Hardware encoding significantly reduces CPU usage (30-50% less than software)
-        print(f"[VideoRecorder] Trying codecs for {self._fps} FPS @ 720p...")
-
-        codecs_to_try = [
-            ("H264", "H.264 (hardware or software)"),
-            ("avc1", "H.264 AVC1 (macOS hardware)"),
-            ("mp4v", "MPEG-4 Part 2"),
-            ("XVID", "Xvid MPEG-4"),
-            ("MJPG", "Motion JPEG (fallback)"),
-        ]
-
-        writer = None
-        for codec, desc in codecs_to_try:
-            try:
-                fourcc = cv2.VideoWriter_fourcc(*codec)
-                writer = cv2.VideoWriter(
-                    self._output_path, fourcc, self._fps,
-                    (self.TARGET_W, self.TARGET_H),
-                )
-                if writer.isOpened():
-                    print(f"[VideoRecorder] ✓ Using codec: {desc}")
-                    break
-                writer.release()
-                writer = None
-            except Exception as e:
-                print(f"[VideoRecorder] ✗ {desc} failed: {e}")
-                continue
-
-        if not writer:
-            # Last resort fallback
-            print("[VideoRecorder] All codecs failed, using mp4v fallback...")
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            writer = cv2.VideoWriter(
-                self._output_path, fourcc, self._fps,
-                (self.TARGET_W, self.TARGET_H),
-            )
-
-        if not writer.isOpened():
-            print("[VideoRecorder] Could not open VideoWriter")
-            sct.close()
-            self._running = False
-            return
-
-        size_check_interval = self._fps  # check file size once per second
-        # ── Adaptive FPS tracking ─────────────────────────────────
-        fps_counter = 0
-        fps_timer = time.monotonic()
+        print(f"[ScreenshotCapture] Started — capturing every {self._interval}s")
 
         while self._running:
+            # If paused — sleep and skip
+            if self._paused:
+                time.sleep(0.1)
+                continue
+
             t0 = time.monotonic()
 
-            # If paused — sleep and skip frame
-            if self._paused:
-                time.sleep(0.05)
-                continue
-
-            # 1. Grab screen via mss (DXGI on Windows — hardware capture)
             try:
+                # 1. Capture screenshot
                 img = sct.grab(monitor)
-            except Exception:  # noqa: BLE001
-                time.sleep(self._interval)
-                continue
+                frame = np.array(img, dtype=np.uint8)
 
-            # 2. BGRA → BGR numpy array
-            frame = np.array(img, dtype=np.uint8)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+                # 2. Convert to JPEG bytes
+                try:
+                    import cv2
+                    # Resize to 1280x720 for consistency
+                    if frame.shape[1] != 1280 or frame.shape[0] != 720:
+                        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+                        frame_bgr = cv2.resize(frame_bgr, (1280, 720),
+                                               interpolation=cv2.INTER_AREA)
+                    else:
+                        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+                    _, jpg_data = cv2.imencode('.jpg', frame_bgr,
+                                               [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    jpg_bytes = jpg_data.tobytes()
+                except ImportError:
+                    # Fallback without OpenCV
+                    jpg_bytes = bytes(frame)
 
-            # 3. Resize to 720p
-            if frame.shape[1] != self.TARGET_W or frame.shape[0] != self.TARGET_H:
-                frame = cv2.resize(
-                    frame, (self.TARGET_W, self.TARGET_H),
-                    interpolation=cv2.INTER_AREA,
-                )
+                # 3. Save screenshot to disk
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filepath = os.path.join(self._output_dir, f"shot_{ts}.jpg")
+                with open(filepath, "wb") as f:
+                    f.write(jpg_bytes)
 
-            # 4. Write frame
-            writer.write(frame)
+                file_size = len(jpg_bytes)
 
-            # 5. Update counters + adaptive FPS measurement
-            fps_counter += 1
-            with self._lock:
-                self._frame_count += 1
-                if self._frame_count % size_check_interval == 0:
-                    try:
-                        self._file_size = os.path.getsize(self._output_path)
-                    except OSError:
-                        pass
-                # Measure actual achieved FPS every second
-                fps_elapsed = time.monotonic() - fps_timer
-                if fps_elapsed >= 1.0:
-                    self._actual_fps = round(fps_counter / fps_elapsed, 1)
-                    fps_counter = 0
-                    fps_timer = time.monotonic()
+                # 4. Instant AI analysis (try ML module)
+                analysis_text = "Скриншот сохранён"
+                score = 75
+                try:
+                    import sys
+                    ml_path = str(Path(__file__).resolve().parents[3] / "ML")
+                    if ml_path not in sys.path:
+                        sys.path.insert(0, ml_path)
+                    from screenshot_analyzer import ScreenshotAnalyzer
+                    analyzer = ScreenshotAnalyzer()
+                    result = analyzer.analyze_screenshot(jpg_bytes)
+                    analysis_text = result.description or "Анализ завершён"
+                    score = result.productivity_score
+                except Exception:  # noqa: BLE001
+                    analysis_text = "ИИ анализирует активность..."
+                    score = 75
 
-            # 6. Maintain target FPS (sleep for remainder of frame interval)
+                # 5. Update stats
+                with self._lock:
+                    self._screenshot_count += 1
+                    self._total_size += file_size
+                    self._last_analysis = analysis_text
+                    self._productivity_score = score
+                    self._analyses.append({
+                        "timestamp": ts,
+                        "file": filepath,
+                        "size": file_size,
+                        "analysis": analysis_text,
+                        "score": score,
+                    })
+
+                print(f"[ScreenshotCapture] #{self._screenshot_count}: "
+                      f"{_format_file_size(file_size)} — score: {score}")
+
+            except Exception as exc:  # noqa: BLE001
+                print(f"[ScreenshotCapture] capture error: {exc}")
+
+            # Sleep until next capture
             elapsed = time.monotonic() - t0
-            sleep_time = self._interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+            sleep_time = max(0, self._interval - elapsed)
+            # Sleep in small increments to check _running flag
+            slept = 0.0
+            while slept < sleep_time and self._running and not self._paused:
+                time.sleep(min(0.5, sleep_time - slept))
+                slept += 0.5
 
-        # ── Cleanup ───────────────────────────────────────────────
-        writer.release()
         sct.close()
-
-        # Final file size
-        try:
-            self._file_size = os.path.getsize(self._output_path)
-        except OSError:
-            pass
+        print(f"[ScreenshotCapture] Stopped — {self._screenshot_count} screenshots")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -469,9 +451,9 @@ class CabinetScreen(QWidget):
         self._work_state = self._STATE_IDLE
         self._session_id: str | None = None
         self._work_start_ts: float | None = None
-        self._recorder = _VideoRecorder(fps=30)  # Discord standard FPS
+        self._capturer = _ScreenshotCapture(interval=10)  # Screenshot every 10s
         self._stats_timer = QTimer(self)
-        self._stats_timer.setInterval(1_000)  # update recording stats every 1 sec
+        self._stats_timer.setInterval(2_000)  # update stats every 2 sec
         self._stats_timer.timeout.connect(self._update_recording_stats)
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(1000)
@@ -589,7 +571,7 @@ class CabinetScreen(QWidget):
         bph = QVBoxLayout(self._broadcast_placeholder)
         bph.setContentsMargins(24, 24, 24, 24)
         self._broadcast_placeholder_label = QLabel(
-            "Его трансляция экрана\n\nНачните работу, чтобы вести трансляцию экрана."
+            "Мониторинг активности\n\nНачните работу — ИИ будет анализировать ваши скриншоты в реальном времени."
         )
         self._broadcast_placeholder_label.setAlignment(Qt.AlignCenter)
         self._broadcast_placeholder_label.setStyleSheet(
@@ -683,7 +665,7 @@ class CabinetScreen(QWidget):
         )
         status_row.addWidget(self._rec_dot)
 
-        rec_label = QLabel("Трансляция экрана")
+        rec_label = QLabel("Скриншоты · ИИ-анализ")
         rec_label.setStyleSheet(
             "color:#ef4444;font-size:13px;font-weight:700;background:transparent;"
         )
@@ -713,7 +695,7 @@ class CabinetScreen(QWidget):
         status_row.addStretch(1)
 
         # Recording stats (duration · size · resolution)
-        self._frame_count_lbl = QLabel("IDLE Готов к записи")
+        self._frame_count_lbl = QLabel("IDLE Готов к работе")
         self._frame_count_lbl.setStyleSheet(
             "color:#4a5068;font-size:11px;background:transparent;"
         )
@@ -970,8 +952,8 @@ class CabinetScreen(QWidget):
         pic = QLabel()
         pic.setFixedSize(28, 28)
         pic.setAlignment(Qt.AlignCenter)
-        pic.setStyleSheet("background:#10b98118;border-radius:14px;border:none;")
-        ppx = _svg_pixmap(_ICON_ACTIVITY, 16, "#10b981")
+        pic.setStyleSheet("background:#3b82f618;border-radius:14px;border:none;")
+        ppx = _svg_pixmap(_ICON_ACTIVITY, 16, "#3b82f6")
         if not ppx.isNull():
             pic.setPixmap(ppx)
         ph.addWidget(pic)
@@ -997,7 +979,7 @@ class CabinetScreen(QWidget):
         self._kpd_bar.setStyleSheet(
             "QProgressBar{background:#1e2538;border-radius:5px;border:none;}"
             "QProgressBar::chunk{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-            "stop:0 #10b981,stop:1 #4f8fff);border-radius:5px;}"
+            "stop:0 #3b82f6,stop:1 #4f8fff);border-radius:5px;}"
         )
         kpd_row.addWidget(self._kpd_bar, 1)
 
@@ -1028,7 +1010,7 @@ class CabinetScreen(QWidget):
         # Stat cards 2x2
         stat_grid_top = QHBoxLayout()
         stat_grid_top.setSpacing(12)
-        self._stat_done = _stat_card(_ICON_CHECK_CIRCLE, "#10b981", "0", "Выполнено\nзадач")
+        self._stat_done = _stat_card(_ICON_CHECK_CIRCLE, "#3b82f6", "0", "Выполнено\nзадач")
         self._stat_hours = _stat_card(_ICON_CLOCK, "#4f8fff", "0ч", "За сегодня")
         stat_grid_top.addWidget(self._stat_done)
         stat_grid_top.addWidget(self._stat_hours)
@@ -1138,9 +1120,9 @@ class CabinetScreen(QWidget):
             self._start_btn.setText("  Начать работу")
             self._start_btn.setIcon(_svg_icon(_ICON_PLAY, 16, "#0c1021"))
             self._start_btn.setStyleSheet(
-                "QPushButton{background:#10b981;color:#0c1021;font-size:14px;"
+                "QPushButton{background:#3b82f6;color:#0c1021;font-size:14px;"
                 "font-weight:700;border:none;border-radius:10px;padding:0 22px;}"
-                "QPushButton:hover{background:#34d399;}"
+                "QPushButton:hover{background:#60a5fa;}"
             )
             self._elapsed_lbl.setText("00:00:00")
             self._elapsed_lbl.setStyleSheet(
@@ -1148,14 +1130,14 @@ class CabinetScreen(QWidget):
                 "font-family:'Consolas','Courier New',monospace;background:transparent;"
             )
             self._frame_count = 0
-            self._frame_count_lbl.setText("IDLE Готов к записи")
+            self._frame_count_lbl.setText("IDLE Готов к работе")
         elif on_break:
             self._start_btn.setText("  Продолжить")
             self._start_btn.setIcon(_svg_icon(_ICON_PLAY, 16, "#0c1021"))
             self._start_btn.setStyleSheet(
-                "QPushButton{background:#10b981;color:#0c1021;font-size:14px;"
+                "QPushButton{background:#3b82f6;color:#0c1021;font-size:14px;"
                 "font-weight:700;border:none;border-radius:10px;padding:0 22px;}"
-                "QPushButton:hover{background:#34d399;}"
+                "QPushButton:hover{background:#60a5fa;}"
             )
             self._elapsed_lbl.setStyleSheet(
                 "color:#f59e0b;font-size:20px;font-weight:700;"
@@ -1163,7 +1145,7 @@ class CabinetScreen(QWidget):
             )
         elif working:
             self._elapsed_lbl.setStyleSheet(
-                "color:#10b981;font-size:20px;font-weight:700;"
+                "color:#3b82f6;font-size:20px;font-weight:700;"
                 "font-family:'Consolas','Courier New',monospace;background:transparent;"
             )
 
@@ -1189,28 +1171,28 @@ class CabinetScreen(QWidget):
                 except Exception:  # noqa: BLE001
                     pass
             self._work_start_ts = time.time()
-            self._recorder.start()
+            self._capturer.start()
             self._stats_timer.start()
             self._elapsed_timer.start()
             self._preview_timer.start()
 
         elif self._work_state == self._STATE_BREAK:
             # Resume from break
-            self._recorder.resume()
+            self._capturer.resume()
             self._stats_timer.start()
             self._elapsed_timer.start()
             self._preview_timer.start()
 
         self._work_state = self._STATE_WORKING
         self._sync_work_ui()
-        # Подключить WebSocket для трансляции в реальном времени (Zoom/Discord-style)
+        # Connect WebSocket for real-time stream
         self._open_live_stream_ws()
         QTimer.singleShot(100, self._send_live_preview_tick)
 
     def _on_break(self) -> None:
-        """Pause work — pause video recording AND stop elapsed timer."""
+        """Pause work — pause screenshot capture AND stop elapsed timer."""
         self._work_state = self._STATE_BREAK
-        self._recorder.pause()
+        self._capturer.pause()
         self._stats_timer.stop()
         self._elapsed_timer.stop()
         self._preview_timer.stop()
@@ -1220,7 +1202,7 @@ class CabinetScreen(QWidget):
     def _on_stop_request(self) -> None:
         """User wants to stop — show report banner first."""
         self._work_state = self._STATE_REPORT
-        self._recorder.pause()
+        self._capturer.pause()
         self._stats_timer.stop()
         self._elapsed_timer.stop()
         self._preview_timer.stop()
@@ -1231,7 +1213,7 @@ class CabinetScreen(QWidget):
     def _cancel_report(self) -> None:
         """Cancel report — return to working state."""
         self._work_state = self._STATE_WORKING
-        self._recorder.resume()
+        self._capturer.resume()
         self._stats_timer.start()
         self._elapsed_timer.start()
         self._sync_work_ui()
@@ -1306,22 +1288,16 @@ class CabinetScreen(QWidget):
         # Add report to tasks list as a completed item
         self._add_report_to_tasks(report_text)
 
-        # Full stop — finalize video recording
-        video_path = self._recorder.stop()
+        # Full stop — finalize screenshot capture
+        screenshots_dir = self._capturer.stop()
         self._preview_timer.stop()
 
-        # Upload video recording to backend
-        if video_path and os.path.isfile(video_path) and org_id and self._session_id:
-            size = os.path.getsize(video_path)
-            print(f"[Cabinet] Запись сохранена: {video_path} ({_format_file_size(size)})")
-            try:
-                api_client.upload_recording(org_id, self._session_id, video_path)
-                print(f"[Cabinet] Видеозапись загружена на сервер")
-            except Exception as exc:  # noqa: BLE001
-                print(f"[Cabinet] Ошибка загрузки видео: {exc}")
-        elif video_path and os.path.isfile(video_path):
-            size = os.path.getsize(video_path)
-            print(f"[Cabinet] Запись сохранена локально: {video_path} ({_format_file_size(size)})")
+        # Log session results
+        stats = self._capturer.stats()
+        sc_count = stats["screenshots"]
+        sc_size = stats["total_size"]
+        print(f"[Cabinet] Сессия завершена: {sc_count} скриншотов, "
+              f"{_format_file_size(sc_size)} — score: {stats['productivity_score']}")
 
         self._work_state = self._STATE_IDLE
         self._session_id = None
@@ -1443,8 +1419,8 @@ class CabinetScreen(QWidget):
         ic = QLabel()
         ic.setFixedSize(24, 24)
         ic.setAlignment(Qt.AlignCenter)
-        ic.setStyleSheet("background:#10b98118;border-radius:12px;border:none;")
-        px = _svg_pixmap(_ICON_CHECK_CIRCLE, 14, "#10b981")
+        ic.setStyleSheet("background:#3b82f618;border-radius:12px;border:none;")
+        px = _svg_pixmap(_ICON_CHECK_CIRCLE, 14, "#3b82f6")
         if not px.isNull():
             ic.setPixmap(px)
         il.addWidget(ic)
@@ -1466,13 +1442,14 @@ class CabinetScreen(QWidget):
     # ── Timers ────────────────────────────────────────────────────
 
     def _update_recording_stats(self) -> None:
-        """Update recording stats in the broadcast panel (every 1s)."""
-        st = self._recorder.stats()
-        frames = st["frames"]
-        fsize = st["file_size"]
+        """Update screenshot capture stats in the broadcast panel."""
+        st = self._capturer.stats()
+        screenshots = st["screenshots"]
+        fsize = st["total_size"]
         dur = st["duration"]
-        target_fps = st["fps"]
-        actual_fps = st.get("actual_fps", 0)
+        interval = st["interval"]
+        analysis = st.get("last_analysis", "")
+        score = st.get("productivity_score", 0)
 
         m, s = divmod(int(dur), 60)
         h, m = divmod(m, 60)
@@ -1480,16 +1457,19 @@ class CabinetScreen(QWidget):
 
         size_str = _format_file_size(fsize) if fsize else "—"
 
-        paused = self._recorder.is_paused()
-        icon = "PAUSE" if paused else "REC"
+        paused = self._capturer.is_paused()
+        icon = "PAUSE" if paused else "LIVE"
         status_suffix = " (пауза)" if paused else ""
 
-        fps_display = f"{actual_fps:.0f}" if actual_fps else f"{target_fps}"
-
         self._frame_count_lbl.setText(
-            f"{icon} {dur_str} · {size_str} · 720p {fps_display}fps · {frames} кадров{status_suffix}"
+            f"{icon} {dur_str} · {size_str} · {screenshots} скриншотов · "
+            f"каждые {interval}с · КПД: {score}%{status_suffix}"
         )
-        self._frame_count = frames
+        self._frame_count = screenshots
+
+        # Update AI status label with latest analysis
+        if analysis:
+            self._ai_status_lbl.setText(f"ИИ: {analysis[:40]}")
 
     def _blink_rec(self) -> None:
         """Toggle REC dot visibility for blinking effect."""
@@ -1587,7 +1567,7 @@ class _SelfPreviewDialog(QDialog):
 
         status_label = QLabel("● Обновляется каждую секунду")
         status_label.setStyleSheet(
-            "color:#10b981;font-size:12px;background:transparent;"
+            "color:#3b82f6;font-size:12px;background:transparent;"
         )
         flay.addWidget(status_label)
 

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     STORAGE_DRIVER: str = "local"
     STORAGE_PATH: str = "./data/recordings"
+    PREVIEWS_PATH: str = "./data/previews"
     MAX_UPLOAD_MB: int = 2048
     RETENTION_DAYS: int = 90
     METRICS_MAX_GAP_SECONDS: int = 300
@@ -24,6 +25,10 @@ class Settings(BaseSettings):
     REPORTS_WEBHOOK_TIMEOUT_SECONDS: int = 5
     SCHEDULE_TICK_SECONDS: int = 300
     GOOGLE_OAUTH_CLIENT_ID: str | None = None
+    AUTH_RATE_LIMIT_MAX_ATTEMPTS: int = 8
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: int = 300
+    HEAVY_ENDPOINT_TIMEOUT_SECONDS: int = 20
+    REPORTS_MAX_RANGE_DAYS: int = 120
 
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True)
 

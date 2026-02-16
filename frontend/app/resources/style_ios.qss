@@ -202,3 +202,74 @@ QListWidget {
 QLabel#Muted {
     color: #8E8E93;
 }
+
+/* ── Design System Quality Layer ──────────────────────────── */
+
+QPushButton {
+    min-height: 36px;
+}
+
+QPushButton:pressed {
+    background-color: #4a4a4c;
+}
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit,
+QComboBox,
+QSpinBox,
+QDateEdit {
+    selection-background-color: #0a84ff;
+    selection-color: #ffffff;
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QPlainTextEdit:focus,
+QComboBox:focus,
+QSpinBox:focus,
+QDateEdit:focus {
+    border: 1px solid #0a84ff;
+}
+
+QListWidget::item {
+    padding: 8px;
+    border-radius: 8px;
+}
+
+QListWidget::item:selected {
+    background-color: #e5f1ff;
+    border: 1px solid #0a84ff;
+}
+
+QToolTip {
+    background-color: #ffffff;
+    color: #1c1c1e;
+    border: 1px solid #d1d1d6;
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 0 4px 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #c7c7cc;
+    min-height: 28px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #0a84ff;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: none;
+    border: none;
+}
