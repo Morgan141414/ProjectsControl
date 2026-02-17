@@ -125,6 +125,69 @@ def seed(db: Session) -> dict[str, str]:
     )
     db.add_all(events)
 
+    # ── Seed superadmin ─────────────────────────────────────────
+    superadmin = get_or_create_user(db, "superadmin@projectscontrol.io", "Super Admin", "SuperAdmin123!")
+    superadmin.is_superadmin = True
+
+    # ── Seed tariff plans ────────────────────────────────────────
+    from app.models.tariff import TariffPlan
+    if not db.query(TariffPlan).first():
+        plans = [
+            TariffPlan(
+                name="Starter", code="starter",
+                description="Free plan for small teams",
+                price_monthly=0, price_yearly=0,
+                max_employees=5, max_teams=1, max_projects=2,
+                max_storage_gb=1, max_ai_tokens_monthly=10000,
+                support_level="community", support_response_hours=72,
+                has_ai_assistant=False, has_video_calls=False,
+            ),
+            TariffPlan(
+                name="Business", code="business",
+                description="For growing companies",
+                price_monthly=4990, price_yearly=49900,
+                max_employees=50, max_teams=10, max_projects=20,
+                max_storage_gb=50, max_ai_tokens_monthly=500000,
+                support_level="standard", support_response_hours=24,
+                has_ai_assistant=True, has_video_calls=True,
+                has_api_access=True,
+            ),
+            TariffPlan(
+                name="Enterprise", code="enterprise",
+                description="For large organizations",
+                price_monthly=14990, price_yearly=149900,
+                max_employees=9999, max_teams=9999, max_projects=9999,
+                max_storage_gb=500, max_ai_tokens_monthly=5000000,
+                support_level="dedicated", support_response_hours=4,
+                has_ai_assistant=True, has_video_calls=True,
+                has_api_access=True, has_custom_branding=True,
+                has_pdf_export=True,
+            ),
+        ]
+        db.add_all(plans)
+
+    # ── Seed FAQ articles ────────────────────────────────────────
+    from app.models.support import FAQArticle
+    if not db.query(FAQArticle).first():
+        faqs = [
+            FAQArticle(
+                category="getting_started",
+                title="How to create an organization?",
+                content="After registration, choose 'Admin' role and follow the organization wizard to create your company.",
+            ),
+            FAQArticle(
+                category="getting_started",
+                title="How to join an existing organization?",
+                content="Choose 'Employee' role during onboarding, then search for your company or enter the join code.",
+            ),
+            FAQArticle(
+                category="billing",
+                title="How do tariff plans work?",
+                content="We offer Starter (free), Business, and Enterprise plans. Upgrade anytime from your organization settings.",
+            ),
+        ]
+        db.add_all(faqs)
+
     return {
         "org_id": org.id,
         "join_code": org.join_code,
@@ -133,6 +196,7 @@ def seed(db: Session) -> dict[str, str]:
         "admin_email": admin.email,
         "manager_email": manager.email,
         "member_email": member.email,
+        "superadmin_email": superadmin.email,
     }
 
 

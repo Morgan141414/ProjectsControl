@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.time import utc_now_naive
@@ -18,6 +18,19 @@ class Organization(Base):
     join_code: Mapped[str] = mapped_column(
         String(16), unique=True, index=True, default=new_join_code
     )
+    description: Mapped[str | None] = mapped_column(Text)
+    industry: Mapped[str | None] = mapped_column(String(100))
+    website: Mapped[str | None] = mapped_column(String(500))
+    logo_url: Mapped[str | None] = mapped_column(String(500))
+    owner_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    suspended_at: Mapped[datetime | None] = mapped_column(DateTime)
+    max_members: Mapped[int] = mapped_column(Integer, default=50)
+    auto_approve: Mapped[bool] = mapped_column(Boolean, default=False)
+    welcome_message: Mapped[str | None] = mapped_column(Text)
+    theme_color: Mapped[str | None] = mapped_column(String(20))
+    legal_name: Mapped[str | None] = mapped_column(String(500))
+    inn: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     memberships = relationship(
@@ -31,6 +44,7 @@ class Organization(Base):
         "Project", back_populates="organization", cascade="all, delete-orphan"
     )
     tasks = relationship("Task", back_populates="organization", cascade="all, delete-orphan")
+    owner = relationship("User", foreign_keys=[owner_id])
 
 
 class OrgMembership(Base):
@@ -42,6 +56,7 @@ class OrgMembership(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
     role: Mapped[OrgRole] = mapped_column(SAEnum(OrgRole), default=OrgRole.member)
     position: Mapped[str | None] = mapped_column(String(255))
+    department: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     organization = relationship("Organization", back_populates="memberships")
