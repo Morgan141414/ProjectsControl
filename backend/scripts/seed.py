@@ -207,9 +207,53 @@ def main() -> None:
 
     with SessionLocal() as db:
         if args.reset:
+            # Delete in reverse-dependency order (children first)
             for table in [
+                # Activity & recordings
+                "screen_recordings",
                 "activity_events",
                 "screen_sessions",
+                # AI
+                "ai_conversations",
+                "ai_company_assistants",
+                # Video
+                "video_recordings",
+                "video_participants",
+                "video_rooms",
+                # Support
+                "ticket_messages",
+                "support_tickets",
+                "faq_articles",
+                # Ratings
+                "employee_monthly_ratings",
+                "employee_public_ratings",
+                "org_public_ratings",
+                # Payments & billing
+                "ban_appeals",
+                "user_bans",
+                "payments",
+                "subscriptions",
+                "tariff_plans",
+                # HR
+                "vacancy_applications",
+                "vacancies",
+                "invitations",
+                # Certificates
+                "organization_certificates",
+                # Scoring & analytics
+                "ai_score_snapshots",
+                # Reports
+                "daily_report_attachments",
+                "report_exports",
+                "report_schedules",
+                "daily_reports",
+                # Audit & privacy
+                "audit_logs",
+                "consent_records",
+                "privacy_rules",
+                "notification_hooks",
+                # Core
+                "org_join_requests",
                 "tasks",
                 "team_memberships",
                 "teams",
