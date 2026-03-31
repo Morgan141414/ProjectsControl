@@ -48,6 +48,7 @@ def create_task(
         due_date=payload.due_date,
     )
     db.add(task)
+    db.flush()
     log_audit(
         db,
         org_id=org_id,

@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.utils.ids import new_id
 
@@ -18,7 +19,7 @@ class ReportExport(Base):
     params_json: Mapped[str] = mapped_column(Text)
     file_path: Mapped[str] = mapped_column(String(500))
     size_bytes: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     creator = relationship("User")
     organization = relationship("Organization")
@@ -35,7 +36,7 @@ class ReportSchedule(Base):
     interval_days: Mapped[int] = mapped_column(Integer)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     creator = relationship("User")
     organization = relationship("Organization")

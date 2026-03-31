@@ -49,6 +49,7 @@ def create_hook(
         enabled=payload.enabled,
     )
     db.add(hook)
+    db.flush()
     log_audit(
         db,
         org_id=org_id,

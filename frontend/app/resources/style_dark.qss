@@ -1,213 +1,1289 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ProjectsControl — Тёмная тема: синий + бело-серый + ярко-синий
+   ───────────────────────────────────────────────────────────────────
+   Palette:
+     Bg-deep     #080b14        глубокий фон
+     Bg-main     #0c1021        основной фон
+     Card        #151a2e        карточки / панели
+     Card-elev   #1e2538       приподнятые карточки
+     Border-1    #1e2538        границы
+     Border-2    #2a3150        границы акцент
+     Accent      #2563eb        синий основной
+     Accent-bright #3b82f6      ярко-синий (акценты, кнопки)
+     Accent-Hov  #60a5fa       синий при наведении
+     White-gray  #f1f5f9       бело-серый текст
+     Text-1      #e8eaf0       основной текст
+     Text-2      #94a3b8       вторичный текст (бело-серый)
+     Text-3      #64748b       приглушённый
+     Orange      #f59e0b       KPI
+     Blue-success #3b82f6      успех (синий)
+     Red         #ef4444       опасность
+   Typography  "Inter", "SF Pro Display", "Segoe UI"
+   ═══════════════════════════════════════════════════════════════════ */
+
 * {
-    font-family: "Manrope", "Montserrat", "Segoe UI";
-    color: #E8E8EA;
+    font-family: "Inter", "SF Pro Display", "Segoe UI";
+    color: #e8eaf0;
 }
 
 QMainWindow {
-    background-color: #0F1115;
+    background-color: #0c1021;
 }
 
+/* ── Sidebar ──────────────────────────────────────────────── */
+
 #Sidebar {
-    background-color: #0F1115;
+    background-color: #080b14;
+    border-right: 1px solid #1e2538;
 }
 
 #Sidebar QPushButton {
     background-color: transparent;
-    color: #E8E8EA;
+    color: #8891a5;
     border: none;
-    padding: 12px 14px;
+    padding: 11px 14px;
     text-align: left;
     font-size: 13px;
-    letter-spacing: 0.2px;
+    font-weight: 500;
+    letter-spacing: 0.15px;
+    border-radius: 10px;
+    margin: 1px 6px;
 }
 
 #Sidebar QPushButton:hover {
-    background-color: #1A1F26;
+    background-color: #151a2e;
+    color: #e8eaf0;
 }
 
 #Sidebar QPushButton:checked {
-    background-color: #202634;
+    background-color: #2563eb20;
+    color: #60a5fa;
 }
+
+#Sidebar QPushButton:pressed {
+    background-color: #3b82f630;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────── */
+
+#TopBar {
+    background-color: #080b14;
+    border-bottom: 1px solid #1e2538;
+}
+
+#TopBarLogo {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+    letter-spacing: 0.6px;
+}
+
+#BellBtn {
+    background-color: transparent;
+    border: none;
+    border-radius: 18px;
+    padding: 6px;
+    color: #8891a5;
+}
+
+#BellBtn:hover {
+    background-color: #151a2e;
+    color: #e8eaf0;
+}
+
+#AvatarBtn {
+    background-color: #151a2e;
+    border: 2px solid #1e2538;
+    border-radius: 18px;
+    padding: 0;
+    font-size: 14px;
+    color: #8891a5;
+}
+
+#AvatarBtn:hover {
+    border-color: #4f8fff;
+}
+
+/* ── Typography ───────────────────────────────────────────── */
 
 #TitleLabel {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
+    letter-spacing: -0.3px;
 }
+
+/* ── Cards ─────────────────────────────────────────────────── */
 
 #Card {
-    background-color: #141820;
-    border: 1px solid #232A36;
-    border-radius: 14px;
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 16px;
 }
 
-#AuthHero {
-    background-color: #0D1117;
-}
+/* ── Auth Screens ─────────────────────────────────────────── */
 
-#AuthOverlay {
-    background-color: rgba(13, 17, 23, 0.72);
-}
-
-#AuthVideo {
-    background-color: #0D1117;
-}
+#AuthHero       { background-color: #080b14; }
+#AuthOverlay    { background-color: rgba(8, 11, 20, 0.72); }
+#AuthVideo      { background-color: #080b14; }
 
 #HeroTitle {
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 800;
-    letter-spacing: 0.6px;
-    color: #F0F6FC;
+    letter-spacing: -0.5px;
+    color: #e8eaf0;
 }
 
 #HeroSubtitle {
-    font-size: 16px;
-    color: #B9BCC4;
+    font-size: 15px;
+    color: #8891a5;
 }
 
 #HeroNote {
-    font-size: 14px;
-    color: #8E949D;
+    font-size: 13px;
+    color: #4a5068;
 }
 
 #AuthCard {
-    background-color: #0F1117;
-    border: 1px solid #21262D;
-    border-radius: 18px;
+    background-color: #0c1021;
+    border: 1px solid #1e2538;
+    border-radius: 20px;
 }
 
 #AuthTitle {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
+    letter-spacing: -0.3px;
 }
 
 #AuthSubtitle {
-    color: #9BA4B5;
+    color: #8891a5;
+    font-size: 14px;
 }
 
-#DashboardMain {
-    background-color: #141820;
-    border: 1px solid #232A36;
-    border-radius: 18px;
+/* ── GitHub-styled Auth ───────────────────────────────────── */
+
+#GhHero       { background-color: #080b14; }
+#GhOverlay    { background-color: rgba(8, 11, 20, 0.55); }
+#GhVideo      { background-color: #080b14; }
+#GhRight      { background-color: #0c1021; }
+#GhScroll     { background-color: #0c1021; }
+
+#GhBrand {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    color: #e8eaf0;
 }
 
-#DashboardCard {
-    background-color: #171C24;
-    border: 1px solid #232A36;
-    border-radius: 16px;
+#GhTagline {
+    font-size: 18px;
+    font-weight: 600;
+    color: #8891a5;
 }
 
-#DashboardSideCard {
-    background-color: #141820;
-    border: 1px solid #232A36;
-    border-radius: 18px;
+#GhNote {
+    font-size: 14px;
+    color: #4a5068;
 }
 
-#DashboardTitle {
+#GhFormTitle {
     font-size: 24px;
     font-weight: 700;
+    color: #e8eaf0;
+    letter-spacing: -0.2px;
 }
 
-#DashboardSubtitle {
-    color: #B9BCC4;
+#GhMuted {
+    color: #4a5068;
+    font-size: 13px;
+    background-color: transparent;
 }
 
-#DashboardSectionTitle {
-    font-size: 16px;
-    font-weight: 700;
+#GhLink {
+    background-color: transparent;
+    color: #4f8fff;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0;
+    text-align: right;
 }
 
-#DashboardRole {
-    padding: 6px 10px;
-}
+#GhLink:hover { color: #6ba3ff; }
 
-#DashboardInput {
-    background-color: #0F1115;
-    border: 1px solid #232A36;
+#GhOAuthBtn {
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
     border-radius: 10px;
-    padding: 8px 10px;
-}
-
-#DashboardPill {
-    background-color: #141820;
-    border: 1px solid #232A36;
-    border-radius: 12px;
-    padding: 4px 10px;
-}
-
-#DashboardStat {
-    background-color: #141820;
-    border: 1px solid #232A36;
-    border-radius: 14px;
-    padding: 8px 12px;
+    padding: 11px 18px;
+    font-size: 14px;
     font-weight: 600;
 }
 
-#AuthToggle {
-    background-color: #171C24;
-    color: #E8E8EA;
-    border: 1px solid #232A36;
+#GhOAuthBtn:hover {
+    background-color: #1e2538;
+    border-color: #2a3150;
+}
+
+#GhDivider {
+    background-color: #1e2538;
+    max-height: 1px;
+    border: none;
+}
+
+#GhFieldLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8eaf0;
+    background-color: transparent;
+}
+
+#GhInput {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#GhInput:focus { border-color: #4f8fff; }
+
+#GhFieldHint {
+    font-size: 12px;
+    color: #4a5068;
+    background-color: transparent;
+}
+
+#GhSubmit {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#GhSubmit:hover { background-color: #6ba3ff; }
+
+#GhSubmit:disabled {
+    background-color: #1e2538;
+    color: #4a5068;
+}
+
+#GhStatus {
+    color: #ef4444;
+    font-size: 13px;
+    background-color: transparent;
+}
+
+#GhTerms {
+    color: #4a5068;
+    font-size: 12px;
+    background-color: transparent;
+}
+
+/* ── Consent Banner ───────────────────────────────────────── */
+
+#ConsentHero {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #0c1a33, stop:1 #0c1021);
+}
+
+#ConsentHeroTitle {
+    font-size: 34px;
+    font-weight: 800;
+    color: #4f8fff;
+    background: transparent;
+    letter-spacing: -0.4px;
+}
+
+#ConsentHeroSub {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#ConsentHeroFooter {
+    font-size: 12px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#ConsentRight  { background-color: #0c1021; }
+#ConsentScroll { background-color: #0c1021; }
+
+#ConsentFormTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#ConsentFormSub {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#ConsentCard {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 14px;
+}
+
+#ConsentCardTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#ConsentCardBody {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#ConsentDisclaimer {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#ConsentAccept {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#ConsentAccept:hover { background-color: #6ba3ff; }
+
+#ConsentDecline {
+    background-color: transparent;
+    color: #8891a5;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#ConsentDecline:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* ── Role Selection ───────────────────────────────────────── */
+
+#RoleWrapper { background-color: #0c1021; }
+
+#RoleTitle {
+    font-size: 30px;
+    font-weight: 800;
+    color: #e8eaf0;
+    background: transparent;
+    letter-spacing: -0.3px;
+}
+
+#RoleSub {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#RoleCard {
+    background-color: #151a2e;
+    border: 2px solid #1e2538;
+    border-radius: 18px;
+    min-width: 260px;
+    max-width: 320px;
+    min-height: 340px;
+}
+
+#RoleCard:hover {
+    border-color: #2a3150;
+    background-color: #1e2538;
+}
+
+#RoleCard[selected="true"] {
+    border-color: #4f8fff;
+    background-color: #4f8fff0c;
+}
+
+#RoleCardTitle {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#RoleCardSub {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#RoleCardFeature {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+    padding: 2px 0;
+}
+
+#RoleContinue {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 32px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#RoleContinue:hover { background-color: #6ba3ff; }
+
+#RoleContinue:disabled {
+    background-color: #1e2538;
+    color: #4a5068;
+}
+
+#RoleHint {
+    font-size: 12px;
+    color: #4a5068;
+    background: transparent;
+}
+
+/* ── Profile Setup ────────────────────────────────────────── */
+
+#SetupHero {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #150c33, stop:1 #0c1021);
+}
+
+#SetupHeroTitle {
+    font-size: 34px;
+    font-weight: 800;
+    color: #a78bfa;
+    background: transparent;
+    letter-spacing: -0.4px;
+}
+
+#SetupHeroSub {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#SetupHeroFooter {
+    font-size: 12px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#SetupRight { background-color: #0c1021; }
+
+#SetupFormTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#SetupFormSub {
+    font-size: 13px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#AvatarFrame {
+    background-color: #151a2e;
+    border: 2px dashed #2a3150;
+    border-radius: 40px;
+}
+
+#SetupFieldLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#SetupInput {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#SetupInput:focus { border-color: #4f8fff; }
+
+#SetupTextArea {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#SetupTextArea:focus { border-color: #4f8fff; }
+
+#SetupFieldHint {
+    font-size: 12px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#SetupSecondary {
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+}
+
+#SetupSecondary:hover { background-color: #1e2538; }
+
+#SetupStatus {
+    color: #ef4444;
+    font-size: 13px;
+    background: transparent;
+}
+
+#SetupSubmit {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#SetupSubmit:hover { background-color: #6ba3ff; }
+
+/* ── Dashboard ────────────────────────────────────────────── */
+
+#DashScroll   { background-color: transparent; border: none; }
+#DashInner    { background-color: transparent; }
+
+#DashGreeting {
+    font-size: 28px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+    letter-spacing: -0.3px;
+}
+
+#DashSub {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#DashStatus {
+    font-size: 13px;
+    color: #4f8fff;
+    background: transparent;
+}
+
+#DashCard {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
     border-radius: 16px;
-    padding: 6px 14px;
+}
+
+#DashSectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#DashMuted {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#DashInput {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#DashInput:focus { border-color: #4f8fff; }
+
+#DashTextArea {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#DashList {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+}
+
+#DashPrimary {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 24px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+#DashPrimary:hover { background-color: #6ba3ff; }
+
+#DashPrimary:disabled {
+    background-color: #1e2538;
+    color: #4a5068;
+}
+
+#DashSecondary {
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 24px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#DashSecondary:hover { background-color: #1e2538; }
+
+#DashCombo {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 9px 14px;
+    color: #e8eaf0;
+}
+
+/* ── Dashboard: Hero & Org Banner ─────────────────────────── */
+
+#DashHeroCard {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #0c1a33, stop:1 #151a2e);
+    border: 1px solid #1e2538;
+    border-radius: 18px;
+}
+
+#DashHeroTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #4f8fff;
+    background: transparent;
+}
+
+#DashSearchInput {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 16px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#DashSearchInput:focus { border-color: #4f8fff; }
+
+#DashOrgBanner {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #0f172a, stop:0.5 #1e3a5f, stop:1 #151a2e);
+    border: 1px solid #2563eb40;
+    border-radius: 18px;
+}
+
+#DashOrgName {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+/* ── Org Wizard ───────────────────────────────────────────── */
+
+#WizScroll  { background-color: #0c1021; border: none; }
+#WizInner   { background-color: #0c1021; }
+
+#WizHeader {
+    background-color: #0c1021;
+    border-bottom: 1px solid #1e2538;
+}
+
+#WizHeaderTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#WizBack {
+    background-color: transparent;
+    color: #8891a5;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 13px;
+}
+
+#WizBack:hover {
+    color: #e8eaf0;
+    border-color: #2a3150;
+}
+
+#WizFormArea { background-color: transparent; }
+
+#WizFormPanel {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 16px;
+}
+
+#WizAvatarFrame {
+    background-color: #080b14;
+    border: 2px dashed #2a3150;
+    border-radius: 50px;
+}
+
+#WizLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#WizHint {
+    font-size: 12px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#WizInput {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#WizInput:focus { border-color: #4f8fff; }
+
+#WizTextArea {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#WizTextArea:focus { border-color: #4f8fff; }
+
+#WizCombo {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 9px 14px;
+    color: #e8eaf0;
+}
+
+#WizSecondary {
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+#WizSecondary:hover { background-color: #1e2538; }
+
+#WizCreate {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 32px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#WizCreate:hover { background-color: #6ba3ff; }
+
+#WizCreate:disabled {
+    background-color: #1e2538;
+    color: #4a5068;
+}
+
+#WizStatus {
+    color: #ef4444;
+    font-size: 13px;
+    background: transparent;
+}
+
+#WizPreviewPanel {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 16px;
+}
+
+#WizPreviewTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a5068;
+    background: transparent;
+}
+
+#WizPreviewCard {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 14px;
+}
+
+#WizPreviewName {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#WizPreviewDesc {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#WizPreviewIndustry {
+    font-size: 12px;
+    color: #4f8fff;
+    background: transparent;
+}
+
+/* ── Notifications ────────────────────────────────────────── */
+
+#NotifHeader {
+    background-color: #0c1021;
+    border-bottom: 1px solid #1e2538;
+}
+
+#NotifHeaderTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#NotifTabs          { background-color: transparent; border: none; }
+#NotifTabs::pane    { border: none; }
+
+#NotifTabs QTabBar::tab {
+    background-color: transparent;
+    color: #4a5068;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#NotifTabs QTabBar::tab:selected {
+    color: #e8eaf0;
+    border-bottom: 2px solid #4f8fff;
+}
+
+#NotifTabs QTabBar::tab:hover { color: #8891a5; }
+
+#NotifScroll { background-color: transparent; border: none; }
+
+#NotifItem {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 12px;
+}
+
+#NotifItem:hover { background-color: #1e2538; }
+
+#NotifTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#NotifBody {
+    font-size: 13px;
+    color: #8891a5;
+    background: transparent;
+}
+
+#NotifAccept {
+    background-color: #4f8fff;
+    color: #080b14;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#NotifAccept:hover { background-color: #6ba3ff; }
+
+#NotifDecline {
+    background-color: transparent;
+    color: #ef4444;
+    border: 1px solid #ef444440;
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#NotifDecline:hover { background-color: #ef444410; }
+
+#NotifEmpty {
+    font-size: 14px;
+    color: #4a5068;
+    background: transparent;
+}
+
+#NotifMsgList { background-color: transparent; border: none; }
+
+#NotifSectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+    padding: 14px 0 4px 0;
+}
+
+/* ── Sidebar Profile Button ───────────────────────────────── */
+
+#SidebarProfileBtn {
+    background-color: #151a2e;
+    border: 2px solid #1e2538;
+    border-radius: 20px;
+    padding: 0;
+}
+
+#SidebarProfileBtn:hover { border-color: #4f8fff; }
+
+#SidebarProfileBtn:checked {
+    border-color: #4f8fff;
+    background-color: #4f8fff0c;
+}
+
+/* ── Messages Screen ──────────────────────────────────────── */
+
+#MsgHeader {
+    background-color: #0c1021;
+    border-bottom: 1px solid #1e2538;
+}
+
+#MsgHeaderTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#MsgNewBtn {
+    background-color: transparent;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 6px 16px;
+    color: #8891a5;
+    font-size: 13px;
+}
+
+#MsgNewBtn:hover {
+    color: #e8eaf0;
+    border-color: #2a3150;
+}
+
+#MsgSearchInput {
+    background-color: #151a2e;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+#MsgSearchInput:focus { border-color: #4f8fff; }
+
+#MsgScroll { background-color: #0c1021; border: none; }
+
+#MsgEmptyIcon {
+    color: #1e2538;
+    font-size: 48px;
+    background: transparent;
+}
+
+#MsgEmptyTitle {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e8eaf0;
+    background: transparent;
+}
+
+#MsgEmptyHint {
+    font-size: 14px;
+    color: #8891a5;
+    background: transparent;
+}
+
+/* ── Dashboard override ───────────────────────────────────── */
+
+#DashScroll   { background-color: #0c1021; border: none; }
+#DashInner    { background-color: #0c1021; }
+
+/* ── Global Controls ──────────────────────────────────────── */
+
+#AuthToggle {
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
+    border-radius: 18px;
+    padding: 7px 16px;
     font-weight: 600;
 }
 
 #AuthToggle:checked {
-    background-color: #E8E8EA;
-    color: #0F1115;
+    background-color: #e8eaf0;
+    color: #080b14;
 }
 
 QLineEdit {
-    background-color: #0F1115;
-    border: 1px solid #232A36;
+    background-color: #080b14;
+    border: 1px solid #1e2538;
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 11px 14px;
+    font-size: 14px;
+    selection-background-color: #4f8fff;
+    selection-color: #ffffff;
 }
 
-QLineEdit:focus {
-    border: 1px solid #E8E8EA;
-}
+QLineEdit:focus { border: 1px solid #4f8fff; }
 
 QPushButton {
-    background-color: #E8E8EA;
-    color: #0F1115;
+    background-color: #e8eaf0;
+    color: #080b14;
     border: none;
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 10px 16px;
     font-weight: 600;
+    font-size: 14px;
+    min-height: 36px;
 }
 
-QPushButton:hover {
-    background-color: #FFFFFF;
-}
+QPushButton:hover { background-color: #ffffff; }
+QPushButton:pressed { background-color: #c8cad4; }
 
 QPushButton:disabled {
-    background-color: #6B6F77;
+    background-color: #1e2538;
+    color: #4a5068;
 }
 
 QPushButton#SecondaryButton {
-    background-color: #171C24;
-    color: #E8E8EA;
-    border: 1px solid #232A36;
+    background-color: #151a2e;
+    color: #e8eaf0;
+    border: 1px solid #1e2538;
 }
 
-QPushButton#SecondaryButton:hover {
-    background-color: #202634;
-}
+QPushButton#SecondaryButton:hover { background-color: #1e2538; }
 
 QPushButton#LinkButton {
     background-color: transparent;
-    color: #E8E8EA;
+    color: #4f8fff;
     border: none;
     padding: 6px 0px;
     text-align: left;
+    font-weight: 600;
 }
 
 QListWidget {
-    border: 1px solid #232A36;
+    border: 1px solid #1e2538;
     border-radius: 12px;
-    background-color: #141820;
+    background-color: #151a2e;
 }
 
-QLabel#Muted {
-    color: #9AA1AB;
+QListWidget::item {
+    padding: 10px;
+    border-radius: 8px;
+}
+
+QListWidget::item:selected {
+    background-color: #4f8fff14;
+    border: 1px solid #4f8fff40;
+}
+
+QLabel#Muted { color: #4a5068; }
+
+/* ── Tooltips ─────────────────────────────────────────────── */
+
+QToolTip {
+    background-color: #1e2538;
+    color: #e8eaf0;
+    border: 1px solid #2a3150;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+/* ── Scrollbars ───────────────────────────────────────────── */
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 4px 2px 4px 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #1e2538;
+    min-height: 32px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover { background: #4f8fff60; }
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: none;
+    border: none;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0 4px 2px 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #1e2538;
+    min-width: 32px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover { background: #4f8fff60; }
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal,
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: none;
+    border: none;
+}
+
+/* ── Selection / Focus ────────────────────────────────────── */
+
+QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
+    selection-background-color: #4f8fff;
+    selection-color: #ffffff;
+}
+
+QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus,
+QSpinBox:focus, QDateEdit:focus {
+    border: 1px solid #4f8fff;
+}
+
+/* ── Combo Dropdown ───────────────────────────────────────── */
+
+QComboBox {
+    background-color: #080b14;
+    border: 1px solid #1e2538;
+    border-radius: 10px;
+    padding: 9px 14px;
+    color: #e8eaf0;
+    font-size: 14px;
+}
+
+QComboBox::drop-down { border: none; }
+
+QComboBox QAbstractItemView {
+    background: #151a2e;
+    color: #e8eaf0;
+    selection-background-color: #1e2538;
+    border: 1px solid #1e2538;
+    border-radius: 8px;
+}
+
+/* ── Progress Bar ─────────────────────────────────────────── */
+
+QProgressBar {
+    background-color: #151a2e;
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    color: #e8eaf0;
+    font-size: 11px;
+}
+
+QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #f59e0b, stop:1 #3b82f6);
+    border-radius: 5px;
+}
+
+/* ── Tab Widget ───────────────────────────────────────────── */
+
+QTabWidget::pane { border: none; }
+
+QTabBar::tab {
+    background: transparent;
+    color: #4a5068;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QTabBar::tab:selected {
+    color: #e8eaf0;
+    border-bottom-color: #4f8fff;
+}
+
+QTabBar::tab:hover { color: #8891a5; }
+
+/* ── Slide Panel (Instagram-style overlay) ───────────────── */
+
+#SlidePanel {
+    background-color: #0c1021;
+    border-left: 1px solid #1e2538;
+}
+
+/* ── Chat Item (Messages) ────────────────────────────────── */
+
+#ChatItem {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+#ChatItem:hover {
+    background-color: #151a2e;
 }

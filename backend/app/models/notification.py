@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.models.enums import NotificationEvent
 from app.utils.ids import new_id
@@ -16,6 +17,6 @@ class NotificationHook(Base):
     event_type: Mapped[NotificationEvent] = mapped_column(SAEnum(NotificationEvent))
     url: Mapped[str] = mapped_column(String(500))
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     organization = relationship("Organization")

@@ -59,6 +59,13 @@ class AIInterpretation(BaseModel):
     stability: str | None = None
     team_median_score: float | None = None
     overload_risk: str | None = None
+    # ── Advanced AI intelligence fields ──
+    cognitive_profile: dict | None = None
+    burnout_assessment: dict | None = None
+    ai_recommendations: list[str] | None = None
+    detailed_analysis: str | None = None
+    grade: str | None = None
+    personality_insight: str | None = None
 
 
 class AIScorecard(BaseModel):

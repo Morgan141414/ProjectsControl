@@ -2,239 +2,339 @@ import os
 from pathlib import Path
 
 import httpx
-from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot, QUrl
-from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PySide6.QtMultimediaWidgets import QVideoWidget
+from PySide6.QtCore import (
+    QByteArray,
+    QObject,
+    QSize,
+    Qt,
+    QThread,
+    QUrl,
+    Signal,
+    Slot,
+)
+from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QStackedLayout,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
+
+try:
+    from PySide6.QtSvg import QSvgRenderer
+
+    _HAS_SVG = True
+except ImportError:
+    _HAS_SVG = False
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 from app.services.api_client import ApiError, api_client
 from app.state.session import session_store
 
+# ── SVG icon data ─────────────────────────────────────────────────────
+
+_GOOGLE_SVG = (
+    '<svg viewBox="0 0 48 48">'
+    '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85'
+    "C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19"
+    'C12.43 13.72 17.74 9.5 24 9.5z"/>'
+    '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02'
+    "h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36"
+    ' 7.09-17.65z"/>'
+    '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27'
+    "-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54"
+    ' 2.56 10.78l7.97-6.19z"/>'
+    '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6'
+    "c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98"
+    ' 6.19C6.51 42.62 14.62 48 24 48z"/>'
+    "</svg>"
+)
+
+
+def _svg_icon(svg_data: str, size: int = 20) -> QIcon:
+    """Create a QIcon from inline SVG data."""
+    if not _HAS_SVG:
+        return QIcon()
+    renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+    pixmap = QPixmap(size, size)
+    pixmap.fill(QColor(0, 0, 0, 0))
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.end()
+    return QIcon(pixmap)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  AuthScreen – GitHub-style login / registration
+# ═══════════════════════════════════════════════════════════════════════
+
 
 class AuthScreen(QWidget):
+    """GitHub-styled authentication screen with video hero and form card."""
+
     auth_success = Signal()
 
     def __init__(self) -> None:
         super().__init__()
         self._load_env_file()
 
-        root_layout = QHBoxLayout(self)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.setSpacing(0)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
+        # ── LEFT: hero panel with gradient background ─────────────
         hero = QFrame()
-        hero.setObjectName("AuthHero")
-        hero_stack = QStackedLayout(hero)
-        hero_stack.setContentsMargins(0, 0, 0, 0)
-        hero_stack.setStackingMode(QStackedLayout.StackAll)
+        hero.setObjectName("GhHero")
 
-        self.video_widget = QVideoWidget()
-        self.video_widget.setObjectName("AuthVideo")
-        hero_stack.addWidget(self.video_widget)
+        ov = QVBoxLayout(hero)
+        ov.setContentsMargins(48, 48, 48, 48)
+        ov.setSpacing(16)
 
-        hero_overlay = QFrame()
-        hero_overlay.setObjectName("AuthOverlay")
-        hero_overlay_layout = QVBoxLayout(hero_overlay)
-        hero_overlay_layout.setContentsMargins(48, 48, 48, 48)
-        hero_overlay_layout.setSpacing(12)
+        brand = QLabel("ProjectsControl")
+        brand.setObjectName("GhBrand")
 
-        hero_title = QLabel("ProjectsControl")
-        hero_title.setObjectName("HeroTitle")
-        hero_subtitle = QLabel("Контроль продуктивности и проектов")
-        hero_subtitle.setObjectName("HeroSubtitle")
-        hero_note = QLabel("Работайте спокойно. Мы поможем держать фокус.")
-        hero_note.setObjectName("HeroNote")
+        tagline = QLabel("Контроль продуктивности\nи управление проектами")
+        tagline.setObjectName("GhTagline")
+        tagline.setWordWrap(True)
 
-        hero_overlay_layout.addWidget(hero_title)
-        hero_overlay_layout.addWidget(hero_subtitle)
-        hero_overlay_layout.addWidget(hero_note)
-        hero_overlay_layout.addStretch(1)
+        note = QLabel("Работайте эффективно.\nМы поможем держать фокус.")
+        note.setObjectName("GhNote")
+        note.setWordWrap(True)
 
-        hero_stack.addWidget(hero_overlay)
+        ov.addWidget(brand)
+        ov.addSpacing(8)
+        ov.addWidget(tagline)
+        ov.addWidget(note)
+        ov.addStretch(1)
 
-        card = QFrame()
-        card.setObjectName("AuthCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(32, 32, 32, 32)
-        card_layout.setSpacing(16)
+        # ── RIGHT: form panel ─────────────────────────────────────
+        right = QFrame()
+        right.setObjectName("GhRight")
+        right_outer = QVBoxLayout(right)
+        right_outer.setContentsMargins(0, 0, 0, 0)
 
-        self.card_title = QLabel("Добро пожаловать!")
-        self.card_title.setObjectName("AuthTitle")
-        self.card_subtitle = QLabel("Авторизуйтесь, чтобы продолжить")
-        self.card_subtitle.setObjectName("AuthSubtitle")
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setObjectName("GhScroll")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        toggle_row = QHBoxLayout()
-        self.login_toggle = QPushButton("Вход")
-        self.register_toggle = QPushButton("Регистрация")
-        for toggle in (self.login_toggle, self.register_toggle):
-            toggle.setCheckable(True)
-            toggle.setCursor(Qt.PointingHandCursor)
-            toggle.setObjectName("AuthToggle")
-        self.login_toggle.setChecked(True)
+        inner = QWidget()
+        inner.setObjectName("GhRight")
+        form = QVBoxLayout(inner)
+        form.setContentsMargins(40, 32, 40, 32)
+        form.setSpacing(0)
 
-        self.login_toggle.clicked.connect(lambda: self._show_panel(0))
-        self.register_toggle.clicked.connect(lambda: self._show_panel(1))
+        # Top-right switch link
+        top_row = QHBoxLayout()
+        top_row.addStretch(1)
+        self.switch_label = QLabel("")
+        self.switch_label.setObjectName("GhMuted")
+        self.switch_link = QPushButton("")
+        self.switch_link.setObjectName("GhLink")
+        self.switch_link.setCursor(Qt.PointingHandCursor)
+        self.switch_link.clicked.connect(self._toggle_mode)
+        top_row.addWidget(self.switch_label)
+        top_row.addWidget(self.switch_link)
+        form.addLayout(top_row)
+        form.addSpacing(32)
 
-        toggle_row.addWidget(self.login_toggle)
-        toggle_row.addWidget(self.register_toggle)
+        # Form title
+        self.form_title = QLabel("")
+        self.form_title.setObjectName("GhFormTitle")
+        form.addWidget(self.form_title)
+        form.addSpacing(24)
 
+        # Google OAuth button
+        self.google_btn = QPushButton("   Continue with Google")
+        self.google_btn.setObjectName("GhOAuthBtn")
+        self.google_btn.setCursor(Qt.PointingHandCursor)
+        self.google_btn.setIcon(_svg_icon(_GOOGLE_SVG, 20))
+        self.google_btn.setIconSize(QSize(20, 20))
+        self.google_btn.clicked.connect(self.handle_google_login)
+        form.addWidget(self.google_btn)
+        form.addSpacing(20)
+
+        # "or" divider
+        div_row = QHBoxLayout()
+        line_l = QFrame()
+        line_l.setFrameShape(QFrame.HLine)
+        line_l.setObjectName("GhDivider")
+        or_lbl = QLabel("or")
+        or_lbl.setObjectName("GhMuted")
+        or_lbl.setAlignment(Qt.AlignCenter)
+        or_lbl.setFixedWidth(36)
+        line_r = QFrame()
+        line_r.setFrameShape(QFrame.HLine)
+        line_r.setObjectName("GhDivider")
+        div_row.addWidget(line_l)
+        div_row.addWidget(or_lbl)
+        div_row.addWidget(line_r)
+        form.addLayout(div_row)
+        form.addSpacing(20)
+
+        # Stacked form panels
         self.stack = QStackedWidget()
         self.login_panel = self._build_login_panel()
         self.register_panel = self._build_register_panel()
         self.stack.addWidget(self.login_panel)
         self.stack.addWidget(self.register_panel)
+        form.addWidget(self.stack)
+        form.addSpacing(16)
 
-        card_layout.addWidget(self.card_title)
-        card_layout.addWidget(self.card_subtitle)
-        card_layout.addLayout(toggle_row)
-        card_layout.addWidget(self.stack)
+        # Status / error label
+        self.status_label = QLabel("")
+        self.status_label.setObjectName("GhStatus")
+        self.status_label.setWordWrap(True)
+        form.addWidget(self.status_label)
 
-        root_layout.addWidget(hero, 3)
-        root_layout.addWidget(card, 2)
+        form.addStretch(1)
+
+        # Terms footer
+        terms = QLabel(
+            "By creating an account, you agree to the "
+            '<a style="color:#4f8fff;text-decoration:none" href="#">'
+            "Terms of Service</a>."
+        )
+        terms.setObjectName("GhTerms")
+        terms.setWordWrap(True)
+        terms.setOpenExternalLinks(False)
+        form.addSpacing(24)
+        form.addWidget(terms)
+
+        scroll.setWidget(inner)
+        right_outer.addWidget(scroll)
+
+        root.addWidget(hero, 3)
+        root.addWidget(right, 2)
 
         self.google_worker: OAuthWorker | None = None
         self.google_thread: QThread | None = None
+        self._mode = 0  # 0 = sign-in, 1 = sign-up
+        self._show_mode(0)
 
-        self.video_player: QMediaPlayer | None = None
-        self.video_audio: QAudioOutput | None = None
-        self._setup_video()
+    # ── form builders ─────────────────────────────────────────────
 
-        self._show_panel(0)
+    @staticmethod
+    def _field(
+        label: str,
+        placeholder: str = "",
+        password: bool = False,
+        hint: str = "",
+    ) -> tuple[QLineEdit, QWidget]:
+        """Build a GitHub-style labelled input field with optional hint."""
+        group = QWidget()
+        lay = QVBoxLayout(group)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(4)
+
+        lbl = QLabel(f"{label}<span style='color:#ef4444'>*</span>")
+        lbl.setObjectName("GhFieldLabel")
+        lbl.setTextFormat(Qt.RichText)
+        lay.addWidget(lbl)
+
+        inp = QLineEdit()
+        inp.setPlaceholderText(placeholder)
+        inp.setObjectName("GhInput")
+        if password:
+            inp.setEchoMode(QLineEdit.Password)
+        lay.addWidget(inp)
+
+        if hint:
+            h = QLabel(hint)
+            h.setObjectName("GhFieldHint")
+            h.setWordWrap(True)
+            lay.addWidget(h)
+
+        return inp, group
 
     def _build_login_panel(self) -> QWidget:
         panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(16)
 
-        self.login_email_input = QLineEdit()
-        self.login_email_input.setPlaceholderText("Email")
+        self.login_email, g1 = self._field("Email", "you@example.com")
+        self.login_password, g2 = self._field(
+            "Password", "Password", password=True
+        )
 
-        self.login_password_input = QLineEdit()
-        self.login_password_input.setPlaceholderText("Пароль")
-        self.login_password_input.setEchoMode(QLineEdit.Password)
+        lay.addWidget(g1)
+        lay.addWidget(g2)
 
-        self.login_status_label = QLabel("")
-        self.login_status_label.setObjectName("Muted")
-
-        self.login_button = QPushButton("Войти")
-        self.login_button.clicked.connect(self.handle_login)
-
-        self.google_button = QPushButton("Войти через Google")
-        self.google_button.setObjectName("SecondaryButton")
-        self.google_button.clicked.connect(self.handle_google_login)
-
-        self.switch_to_register = QPushButton("Нет аккаунта? Зарегистрироваться")
-        self.switch_to_register.setObjectName("LinkButton")
-        self.switch_to_register.clicked.connect(lambda: self._show_panel(1))
-
-        layout.addWidget(self.login_email_input)
-        layout.addWidget(self.login_password_input)
-        layout.addWidget(self.login_status_label)
-        layout.addWidget(self.login_button)
-        layout.addWidget(self.google_button)
-        layout.addWidget(self.switch_to_register)
+        self.login_btn = QPushButton("Sign in  →")
+        self.login_btn.setObjectName("GhSubmit")
+        self.login_btn.setCursor(Qt.PointingHandCursor)
+        self.login_btn.clicked.connect(self.handle_login)
+        lay.addWidget(self.login_btn)
 
         return panel
 
     def _build_register_panel(self) -> QWidget:
         panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(16)
 
-        self.register_name_input = QLineEdit()
-        self.register_name_input.setPlaceholderText("Имя и фамилия")
+        self.reg_email, g1 = self._field("Email", "you@example.com")
+        self.reg_password, g2 = self._field(
+            "Password",
+            "Create a password",
+            password=True,
+            hint=(
+                "Password should be at least 15 characters OR at least 8 "
+                "characters including a number and a lowercase letter."
+            ),
+        )
+        self.reg_name, g3 = self._field("Full Name", "Your full name")
 
-        self.register_email_input = QLineEdit()
-        self.register_email_input.setPlaceholderText("Email")
+        lay.addWidget(g1)
+        lay.addWidget(g2)
+        lay.addWidget(g3)
 
-        self.register_password_input = QLineEdit()
-        self.register_password_input.setPlaceholderText("Пароль (минимум 8 символов)")
-        self.register_password_input.setEchoMode(QLineEdit.Password)
-
-        self.register_status_label = QLabel("")
-        self.register_status_label.setObjectName("Muted")
-
-        self.register_button = QPushButton("Создать аккаунт")
-        self.register_button.clicked.connect(self.handle_register)
-
-        self.switch_to_login = QPushButton("Уже есть аккаунт? Войти")
-        self.switch_to_login.setObjectName("LinkButton")
-        self.switch_to_login.clicked.connect(lambda: self._show_panel(0))
-
-        layout.addWidget(self.register_name_input)
-        layout.addWidget(self.register_email_input)
-        layout.addWidget(self.register_password_input)
-        layout.addWidget(self.register_status_label)
-        layout.addWidget(self.register_button)
-        layout.addWidget(self.switch_to_login)
+        self.reg_btn = QPushButton("Create account  →")
+        self.reg_btn.setObjectName("GhSubmit")
+        self.reg_btn.setCursor(Qt.PointingHandCursor)
+        self.reg_btn.clicked.connect(self.handle_register)
+        lay.addWidget(self.reg_btn)
 
         return panel
 
-    def _show_panel(self, index: int) -> None:
+    # ── mode switching ────────────────────────────────────────────
+
+    def _show_mode(self, index: int) -> None:
+        self._mode = index
         self.stack.setCurrentIndex(index)
-        self.login_toggle.setChecked(index == 0)
-        self.register_toggle.setChecked(index == 1)
+        self.status_label.setText("")
+        self.status_label.setStyleSheet("")
         if index == 0:
-            self.card_title.setText("Добро пожаловать!")
-            self.card_subtitle.setText("Введите данные для входа")
+            self.form_title.setText("Sign in to ProjectsControl")
+            self.switch_label.setText("New to ProjectsControl?  ")
+            self.switch_link.setText("Create an account →")
         else:
-            self.card_title.setText("Создайте аккаунт")
-            self.card_subtitle.setText("Это займет меньше минуты")
+            self.form_title.setText("Create your account")
+            self.switch_label.setText("Already have an account?  ")
+            self.switch_link.setText("Sign in →")
 
-    def _setup_video(self) -> None:
-        source = self._resolve_video_source()
-        if not source:
-            self.video_widget.setVisible(False)
-            return
+    def _toggle_mode(self) -> None:
+        self._show_mode(1 if self._mode == 0 else 0)
 
-        self.video_player = QMediaPlayer()
-        self.video_audio = QAudioOutput()
-        self.video_audio.setMuted(True)
-        self.video_player.setAudioOutput(self.video_audio)
-        self.video_player.setVideoOutput(self.video_widget)
-        self.video_player.setSource(source)
-        self.video_player.mediaStatusChanged.connect(self._loop_video)
-        self.video_player.play()
-
-    def _resolve_video_source(self) -> QUrl | None:
-        raw = os.getenv("LOGIN_VIDEO_PATH")
-        if raw:
-            return QUrl.fromUserInput(raw)
-
-        default_path = Path(__file__).resolve().parents[2] / "resources" / "login_bg.mp4"
-        if default_path.exists():
-            return QUrl.fromLocalFile(str(default_path))
-        return None
-
-    def _loop_video(self, status) -> None:
-        if status == QMediaPlayer.EndOfMedia and self.video_player:
-            self.video_player.setPosition(0)
-            self.video_player.play()
-        if status == QMediaPlayer.InvalidMedia:
-            self.video_widget.setVisible(False)
+    # ── handlers ──────────────────────────────────────────────────
 
     def handle_login(self) -> None:
-        email = self.login_email_input.text().strip()
-        password = self.login_password_input.text().strip()
+        email = self.login_email.text().strip()
+        password = self.login_password.text().strip()
         if not email or not password:
-            self.login_status_label.setText("Введите email и пароль")
+            self.status_label.setText("Enter email and password")
             return
 
-        self.login_button.setEnabled(False)
+        self.login_btn.setEnabled(False)
         try:
             token = api_client.login(email, password)
             session_store.set_token(token)
@@ -247,56 +347,62 @@ class AuthScreen(QWidget):
                 )
             except ApiError:
                 session_store.set_user_profile(None, None, None)
-            self.login_status_label.setText("Вход выполнен")
+            self.status_label.setText("")
             self.auth_success.emit()
         except ApiError as exc:
-            self.login_status_label.setText(f"Ошибка входа: {exc}")
+            self.status_label.setText(f"Login error: {exc}")
         except Exception as exc:  # noqa: BLE001
-            self.login_status_label.setText(f"Ошибка входа: {exc}")
+            self.status_label.setText(f"Login error: {exc}")
         finally:
-            self.login_button.setEnabled(True)
+            self.login_btn.setEnabled(True)
 
     def handle_register(self) -> None:
-        full_name = self.register_name_input.text().strip()
-        email = self.register_email_input.text().strip()
-        password = self.register_password_input.text().strip()
-        if not full_name or not email or not password:
-            self.register_status_label.setText("Заполните все поля")
+        name = self.reg_name.text().strip()
+        email = self.reg_email.text().strip()
+        password = self.reg_password.text().strip()
+        if not name or not email or not password:
+            self.status_label.setText("Please fill in all fields")
             return
 
-        self.register_button.setEnabled(False)
+        self.reg_btn.setEnabled(False)
         try:
-            api_client.register(email=email, password=password, full_name=full_name)
-            self.register_status_label.setText("Аккаунт создан. Войдите.")
-            self.register_name_input.clear()
-            self.register_email_input.clear()
-            self.register_password_input.clear()
-            self._show_panel(0)
+            api_client.register(email=email, password=password, full_name=name)
+            self.status_label.setText("")
+            self.reg_name.clear()
+            self.reg_email.clear()
+            self.reg_password.clear()
+            self._show_mode(0)
+            self.status_label.setText("Account created! Please sign in.")
+            self.status_label.setStyleSheet("color: #3b82f6;")
         except ApiError as exc:
-            self.register_status_label.setText(f"Ошибка регистрации: {exc}")
+            self.status_label.setStyleSheet("")
+            self.status_label.setText(f"Registration error: {exc}")
         except Exception as exc:  # noqa: BLE001
-            self.register_status_label.setText(f"Ошибка регистрации: {exc}")
+            self.status_label.setStyleSheet("")
+            self.status_label.setText(f"Registration error: {exc}")
         finally:
-            self.register_button.setEnabled(True)
+            self.reg_btn.setEnabled(True)
 
     def handle_google_login(self) -> None:
         self._load_env_file()
         client_id = os.getenv("GOOGLE_CLIENT_ID")
         client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         if not client_id or not client_secret:
-            self.login_status_label.setText(
-                "Нет GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET в frontend/.env"
+            self.status_label.setText(
+                "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set in frontend/.env"
             )
             return
 
         if self.google_thread and self.google_thread.isRunning():
-            self.login_status_label.setText("OAuth уже запущен")
+            self.status_label.setText("OAuth already in progress")
             return
 
-        self.google_button.setEnabled(False)
-        self.login_status_label.setText("Открываем браузер для входа...")
+        self.google_btn.setEnabled(False)
+        self.status_label.setText("Opening browser for Google sign in…")
 
-        self.google_worker = OAuthWorker(client_id=client_id, client_secret=client_secret)
+        self.google_worker = OAuthWorker(
+            client_id=client_id, client_secret=client_secret
+        )
         self.google_thread = QThread()
         self.google_worker.moveToThread(self.google_thread)
 
@@ -310,46 +416,47 @@ class AuthScreen(QWidget):
 
     def _on_google_finished(self, profile: dict, error: str) -> None:
         if error:
-            self.login_status_label.setText(f"OAuth ошибка: {error}")
-            self.google_button.setEnabled(True)
+            self.status_label.setText(f"OAuth error: {error}")
+            self.google_btn.setEnabled(True)
             return
 
         email = profile.get("email", "")
         name = profile.get("name", "")
         id_token = profile.get("id_token")
+
         if email:
-            self.login_email_input.setText(email)
-            self.register_email_input.setText(email)
-        if name and not self.register_name_input.text().strip():
-            self.register_name_input.setText(name)
+            self.login_email.setText(email)
+            self.reg_email.setText(email)
+        if name and not self.reg_name.text().strip():
+            self.reg_name.setText(name)
 
         if not id_token:
-            self.login_status_label.setText(
-                "Google OAuth выполнен, но id_token не получен"
-            )
-            self.google_button.setEnabled(True)
+            self.status_label.setText("OAuth completed, but no id_token received")
+            self.google_btn.setEnabled(True)
             return
 
         try:
             token = api_client.google_login(id_token)
             session_store.set_token(token)
             try:
-                profile = api_client.get_me()
+                me = api_client.get_me()
                 session_store.set_user_profile(
-                    profile.get("id"),
-                    profile.get("full_name"),
-                    profile.get("patronymic"),
+                    me.get("id"),
+                    me.get("full_name"),
+                    me.get("patronymic"),
                 )
             except ApiError:
                 session_store.set_user_profile(None, None, None)
-            self.login_status_label.setText("Вход через Google выполнен")
+            self.status_label.setText("")
             self.auth_success.emit()
         except ApiError as exc:
-            self.login_status_label.setText(f"Ошибка Google входа: {exc}")
+            self.status_label.setText(f"Google sign-in error: {exc}")
         except Exception as exc:  # noqa: BLE001
-            self.login_status_label.setText(f"Ошибка Google входа: {exc}")
+            self.status_label.setText(f"Google sign-in error: {exc}")
         finally:
-            self.google_button.setEnabled(True)
+            self.google_btn.setEnabled(True)
+
+    # ── helpers ───────────────────────────────────────────────────
 
     def _load_env_file(self) -> None:
         env_path = Path(__file__).resolve().parents[3] / ".env"
@@ -357,12 +464,15 @@ class AuthScreen(QWidget):
             return
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" not in line:
+            if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
             os.environ.setdefault(key.strip(), value.strip().strip('"'))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  OAuthWorker – runs Google OAuth flow in a background thread
+# ═══════════════════════════════════════════════════════════════════════
 
 
 class OAuthWorker(QObject):

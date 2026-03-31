@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.utils.ids import new_id
 
@@ -15,4 +16,4 @@ class ConsentRecord(Base):
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"))
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     policy_version: Mapped[str] = mapped_column(String(50))
-    accepted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    accepted_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)

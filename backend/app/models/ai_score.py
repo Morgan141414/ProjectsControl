@@ -3,6 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.models.enums import ScorePeriod
 from app.utils.ids import new_id
@@ -31,7 +32,7 @@ class AIScoreSnapshot(Base):
     sessions_count: Mapped[int] = mapped_column(Integer)
     reasons_json: Mapped[str | None] = mapped_column(Text)
     drivers_json: Mapped[str | None] = mapped_column(Text)
-    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     user = relationship("User")
     organization = relationship("Organization")

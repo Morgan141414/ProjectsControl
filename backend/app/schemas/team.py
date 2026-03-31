@@ -8,6 +8,13 @@ class TeamCreate(BaseModel):
     project_id: str | None = None
 
 
+class TeamMemberInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: str
+    role: TeamRole
+    full_name: str | None = None
+
+
 class TeamResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -15,6 +22,7 @@ class TeamResponse(BaseModel):
     org_id: str
     project_id: str | None
     name: str
+    members: list[TeamMemberInfo] = []
 
 
 class TeamUpdate(BaseModel):

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from app.core.report_exports import ReportExportError, export_org_kpi, export_project_kpi
+from app.core.time import utc_now_naive
 from app.models.reporting import ReportExport, ReportSchedule
 from app.schemas.project_reports import ProjectKPIReport
 from app.schemas.reports import KPIOrgReport
@@ -29,12 +30,12 @@ def run_schedule_export(db, org_id: str, schedule: ReportSchedule, export_format
         size_bytes=size_bytes,
     )
     db.add(export)
-    schedule.last_run_at = datetime.utcnow()
+    schedule.last_run_at = utc_now_naive()
     return export
 
 
 def run_due_schedules(db, org_id: str | None = None, export_format: str = "csv") -> list[ReportExport]:
-    now = datetime.utcnow()
+    now = utc_now_naive()
     query = db.query(ReportSchedule).filter(ReportSchedule.enabled.is_(True))
     if org_id:
         query = query.filter(ReportSchedule.org_id == org_id)

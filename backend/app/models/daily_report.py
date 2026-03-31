@@ -3,6 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now_naive
 from app.db.base import Base
 from app.utils.ids import new_id
 
@@ -19,7 +20,7 @@ class DailyReport(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     report_date: Mapped[date] = mapped_column(Date)
     content: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now_naive)
 
     organization = relationship("Organization")
     project = relationship("Project")
